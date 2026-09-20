@@ -97,7 +97,7 @@ export default function Sidebar() {
   return (
     <>
       {/* ---------- MOBILE TOP BAR ---------- */}
-      <div className="md:hidden sticky top-0 z-40 flex items-center justify-between bg-[#0a0e0d] px-4 py-3 shadow-lg">
+      <div className="md:hidden  fixed top-0 z-40 flex items-center justify-between bg-[#0a0e0d] px-4 py-3 shadow-lg">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-xs font-bold text-white ring-2 ring-white/20">
             AMC

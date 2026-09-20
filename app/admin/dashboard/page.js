@@ -143,12 +143,12 @@ export default function Dashboard() {
       </div>
 
       {/* Sidebar */}
-      <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0 relative z-10">
-        <Sidebar />
-      </div>
+   <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0 relative z-50">
+  <Sidebar />
+</div>
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto w-full relative z-10">
+      <div className="flex-1  p-[30px] md:p-6 lg:p-8 overflow-y-auto w-full max-w-5xl  m-auto relative z-10">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4 animate-fade-in-down">

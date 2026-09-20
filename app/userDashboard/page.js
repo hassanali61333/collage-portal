@@ -87,9 +87,9 @@ export default function UserDashboard() {
   /* ---------------- LOADING ---------------- */
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
         <UserSidebar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 min-w-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full blur-lg opacity-50" />
@@ -106,10 +106,10 @@ export default function UserDashboard() {
 
   /* ---------------- MAIN DASHBOARD ---------------- */
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
       <UserSidebar />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-w-0 overflow-y-auto">
         <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
 
           {/* ---------- HERO HEADER ---------- */}
@@ -146,7 +146,6 @@ export default function UserDashboard() {
                   <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">
                     {admissionData?.name || auth?.name || "Student"}
                   </h1>
-                
 
                   <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                     {admissionData?.classInAdmission && (
@@ -230,7 +229,6 @@ export default function UserDashboard() {
                   <div className="p-4 space-y-2">
                     <ActionButton label="View Full Profile" icon="user" onClick={() => router.push("/userProfile")} />
                     <ActionButton label="Edit Admission" icon="edit" onClick={() => router.push("/userForm")} />
-                  
                   </div>
                 </div>
 
@@ -284,9 +282,6 @@ export default function UserDashboard() {
                   </div>
                 </div>
               </div>
-
-              {/* ---------- NOTICES ---------- */}
-          
             </>
           )}
 
@@ -403,5 +398,3 @@ function CompletionItem({ done, label }) {
     </li>
   );
 }
-
-
