@@ -371,7 +371,7 @@ function ActionButton({ label, icon, onClick }) {
   );
 }
 
-/* ---------------- Info Row ---------------- */
+
 function InfoRow({ label, value }) {
   return (
     <div className="group p-3 rounded-xl hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/50 transition-all duration-200">
@@ -381,7 +381,7 @@ function InfoRow({ label, value }) {
   );
 }
 
-/* ---------------- Completion Item ---------------- */
+
 function CompletionItem({ done, label }) {
   return (
     <li className="flex items-center gap-2">
@@ -398,3 +398,4 @@ function CompletionItem({ done, label }) {
     </li>
   );
 }
+
