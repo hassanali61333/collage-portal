@@ -1,7 +1,5 @@
-
 import User from "../models/usersModel.js";
 import connectDB from "../lib/db.js";
-
 import { cookies } from "next/headers";
 
 export const signup = async (req) => {
@@ -27,18 +25,18 @@ export const signup = async (req) => {
       };
     }
 
-    // ✅ Check existing user (ye already hai)
+    // Check existing user
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return {
         success: false,
-        message: "This email is already registered. Please login instead.", // ✅ Clear message
-        status: 409, // ✅ Conflict
+        message: "This email is already registered. Please login instead.",
+        status: 409,
       };
     }
 
-    // Create user (Password hash karna bhoolna mat!)
+    // Create user
     const user = await User.create({
       name,
       email,
@@ -53,7 +51,7 @@ export const signup = async (req) => {
         name: user.name,
         email: user.email,
         role: user.role || "user",
-           isFormFill: user.isFormFill, 
+        isFormFill: user.isFormFill,
       },
       status: 201,
     };
@@ -67,19 +65,17 @@ export const signup = async (req) => {
   }
 };
 
-
-
-
-
-
 export const login = async (req) => {
   try {
     await connectDB();
 
-    // ✅ GET request se query params nikaalein
+    // GET query se email/password nikalein
     const { searchParams } = new URL(req.url);
+
     const email = searchParams.get("email");
     const password = searchParams.get("password");
+
+    console.log({ email, password });
 
     if (!email || !password) {
       return {
@@ -108,6 +104,7 @@ export const login = async (req) => {
     }
 
     const cookieStore = await cookies();
+
     cookieStore.set("role", user.role, {
       path: "/",
       maxAge: 60 * 60 * 24,
@@ -121,12 +118,13 @@ export const login = async (req) => {
         name: user.name,
         email: user.email,
         role: user.role,
-           isFormFill: user.isFormFill, 
+        isFormFill: user.isFormFill,
       },
       status: 200,
     };
   } catch (error) {
     console.error("Login Error:", error);
+
     return {
       success: false,
       message: "Server error",
