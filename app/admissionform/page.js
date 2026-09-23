@@ -3,16 +3,18 @@
 import { useState,useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createAdmission } from "@/app/services/service.js";
-import Sidebar from "@/app/components/sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "@/app/redux/authSlice";
 
-export default function Form() {
+export default function AdmissionForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 const dispatch=useDispatch()
   const auth = useSelector((state) => state.auth.user);
 console.log("myid")
+
+
+
 
   useEffect(() => {
     if (!auth) {
@@ -122,12 +124,16 @@ console.log("myid")
     }
   };
 
+  useEffect(() => {
+  if (stuid && formData.studentId !== stuid) {
+    setFormData((prev) => ({ ...prev, studentId: stuid }));
+  }
+}, [stuid]);
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Sidebar - fixed width 210px on desktop, full width on mobile */}
-      <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0">
-        <Sidebar />
-      </div>
+    
 
       {/* Main Content - takes remaining space */}
       <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">

@@ -81,3 +81,33 @@ export const getAllNotifications = () =>
 // Delete notification by id
 export const deleteNotification = (id) =>
   api.delete(`/notification?id=${id}`);
+
+
+export const getapprovedstudents=()=>{
+  return api.get("/getapprovedstd")
+}
+
+// Admission Settings — Get all (optional className / academicYear filter)
+export const getAdmissionSettings = (params = {}) => {
+  return api.get("/datesinfo", { params });
+};
+
+// Admission Settings — Get single by id
+export const getAdmissionSettingById = (id) => {
+  return api.get("/datesinfo", { params: { id } });
+};
+
+// Admission Settings — Create
+export const createAdmissionSetting = (data) => {
+  return api.post("/datesinfo", data);
+};
+
+// Admission Settings — Update by id
+export const updateAdmissionSetting = (id, data) => {
+  return api.put("/datesinfo", data, { params: { id } });
+};
+
+// Admission Settings — Delete by id
+export const deleteAdmissionSetting = (id) => {
+  return api.delete("/datesinfo", { params: { id } });
+};

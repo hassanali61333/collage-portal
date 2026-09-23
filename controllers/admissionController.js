@@ -3,6 +3,8 @@ import AdmissionModel from "../models/admissionModel.js";
 import connectDB from "../lib/db.js";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import User from "../models/usersModel.js";
+
 
 // ============================================
 // GET - Get all admissions
@@ -31,13 +33,14 @@ export async function getAllAdmissions() {
 // ============================================
 // POST - Create admission (with picture + shift support)
 // ============================================
+
 export async function createAdmission(req) {
   try {
     await connectDB();
 
     const formData = await req.formData();
 
-    // Convert formData entries into a plain object (skip picture, handled separately)
+    // Convert formData entries into a plain object (skip picture)
     const admissionData = {};
     for (const [key, value] of formData.entries()) {
       if (key !== "picture") {
@@ -45,7 +48,7 @@ export async function createAdmission(req) {
       }
     }
 
-    // Handle picture upload (if provided)
+    // Handle picture upload
     const pictureFile = formData.get("picture");
     if (pictureFile && typeof pictureFile === "object" && pictureFile.size > 0) {
       const bytes = await pictureFile.arrayBuffer();
@@ -75,7 +78,15 @@ export async function createAdmission(req) {
       };
     }
 
+    // Create admission
     const admission = await AdmissionModel.create(admissionData);
+
+    // ✅ Mark user form as filled
+    if (admissionData.studentId) {
+      await User.findByIdAndUpdate(admissionData.studentId, {
+        isFormFill: true,
+      });
+    }
 
     return {
       success: true,

@@ -10,6 +10,15 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "@/app/redux/authSlice";
 import UserSidebar from "../components/userSidebar";
 
+// ---------- react-icons ----------
+import {
+  FiEdit3,
+  FiUser,
+  FiAlertCircle,
+  FiCheck,
+  FiArrowLeft,
+} from "react-icons/fi";
+
 // ─────────────────────────────────────────────
 // ✅ Constants OUTSIDE component
 // ─────────────────────────────────────────────
@@ -43,7 +52,7 @@ const INITIAL_FORM = {
 };
 
 // ─────────────────────────────────────────────
-// ✅ Reusable memoized field components
+// ✅ Reusable memoized field components (B&W theme)
 // ─────────────────────────────────────────────
 const InputField = memo(function InputField({
   label,
@@ -57,8 +66,8 @@ const InputField = memo(function InputField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-        {label} {required && <span className="text-indigo-500">*</span>}
+      <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">
+        {label} {required && <span className="text-black">*</span>}
       </label>
       <input
         type={type}
@@ -66,13 +75,18 @@ const InputField = memo(function InputField({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full px-4 py-3 bg-slate-50 border ${
+        className={`w-full px-4 py-3 bg-neutral-50 border ${
           error
-            ? "border-red-400 ring-2 ring-red-100"
-            : "border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-        } rounded-xl focus:outline-none focus:bg-white transition-all text-sm text-slate-900 placeholder-slate-400 font-medium`}
+            ? "border-black ring-1 ring-black"
+            : "border-neutral-200 focus:border-black focus:ring-1 focus:ring-black"
+        } rounded-lg focus:outline-none focus:bg-white transition-all text-[13px] text-black placeholder-neutral-400 font-medium`}
       />
-      {error && <p className="text-red-500 text-xs mt-1.5 font-medium">{error}</p>}
+      {error && (
+        <p className="text-black text-xs mt-1.5 font-semibold flex items-center gap-1">
+          <FiAlertCircle className="w-3 h-3" />
+          {error}
+        </p>
+      )}
     </div>
   );
 });
@@ -89,18 +103,18 @@ const SelectField = memo(function SelectField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-        {label} {required && <span className="text-indigo-500">*</span>}
+      <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wide mb-2">
+        {label} {required && <span className="text-black">*</span>}
       </label>
       <select
         name={name}
         value={value}
         onChange={onChange}
-        className={`w-full px-4 py-3 bg-slate-50 border ${
+        className={`w-full px-4 py-3 bg-neutral-50 border ${
           error
-            ? "border-red-400 ring-2 ring-red-100"
-            : "border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-        } rounded-xl focus:outline-none focus:bg-white transition-all text-sm text-slate-900 font-medium`}
+            ? "border-black ring-1 ring-black"
+            : "border-neutral-200 focus:border-black focus:ring-1 focus:ring-black"
+        } rounded-lg focus:outline-none focus:bg-white transition-all text-[13px] text-black font-medium`}
       >
         <option value="">{placeholder}</option>
         {options.map((opt) => (
@@ -109,7 +123,12 @@ const SelectField = memo(function SelectField({
           </option>
         ))}
       </select>
-      {error && <p className="text-red-500 text-xs mt-1.5 font-medium">{error}</p>}
+      {error && (
+        <p className="text-black text-xs mt-1.5 font-semibold flex items-center gap-1">
+          <FiAlertCircle className="w-3 h-3" />
+          {error}
+        </p>
+      )}
     </div>
   );
 });
@@ -280,7 +299,7 @@ export default function UpdateAdmission() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-neutral-50">
       <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0">
         <UserSidebar />
       </div>
@@ -288,43 +307,38 @@ export default function UpdateAdmission() {
       <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
 
-          {/* Header */}
+          {/* ---------- Header ---------- */}
           <div className="mb-6 md:mb-8">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl blur-lg opacity-40" />
-                <div className="relative w-14 h-14 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center flex-shrink-0">
+                <FiEdit3 className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                <h1 className="text-2xl md:text-3xl font-bold text-black tracking-tight">
                   Update Admission
                 </h1>
-                <p className="text-sm text-slate-500 mt-0.5">
+                <p className="text-sm text-neutral-500 mt-0.5">
                   Modify your application details
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-slate-900/5 border border-slate-200 overflow-hidden">
-            {/* Gradient top accent */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+          <div className="relative bg-white rounded-2xl border border-neutral-200 overflow-hidden">
 
-            <div className="px-5 py-4 flex items-center gap-3 border-b border-slate-100">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-md shadow-indigo-500/30">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            {/* Top accent bar (black) */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-black" />
+
+            {/* Card header */}
+            <div className="px-5 py-4 flex items-center gap-3 border-b border-neutral-100">
+              <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center flex-shrink-0">
+                <FiUser className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h2 className="text-slate-900 text-sm md:text-base font-bold tracking-wide">
+                <h2 className="text-black text-sm md:text-base font-bold tracking-tight">
                   Student Information
                 </h2>
-                <p className="text-slate-500 text-xs">
+                <p className="text-neutral-500 text-xs">
                   Update the fields you want to change
                 </p>
               </div>
@@ -333,43 +347,34 @@ export default function UpdateAdmission() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full blur-lg opacity-50" />
-                  <svg
-                    className="relative animate-spin h-8 w-8 text-indigo-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <div className="w-10 h-10 rounded-full border-2 border-neutral-200" />
+                  <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-transparent border-t-black animate-spin" />
                 </div>
-                <p className="mt-3 text-sm text-slate-500 font-medium">
-                  Loading admission data...
+                <p className="mt-4 text-xs text-neutral-500 font-medium">
+                  Loading admission data
                 </p>
               </div>
             ) : fetchError ? (
               <div className="p-8 text-center">
-                <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                <div className="w-14 h-14 bg-neutral-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                  <FiAlertCircle className="w-7 h-7 text-black" />
                 </div>
-                <p className="text-slate-700 text-sm font-medium mb-3">{fetchError}</p>
+                <p className="text-black text-sm font-semibold mb-4">{fetchError}</p>
                 <button
                   onClick={() => router.back()}
-                  className="text-sm text-indigo-600 hover:text-indigo-700 font-semibold hover:underline"
+                  className="inline-flex items-center gap-2 text-sm text-black font-semibold hover:underline"
                 >
-                  ← Go back
+                  <FiArrowLeft className="w-4 h-4" />
+                  Go back
                 </button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="p-5 md:p-6">
 
-                {/* Personal Information */}
+                {/* ---------- Personal Information ---------- */}
                 <div className="mb-8">
-                  <h3 className="text-sm md:text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <span className="w-1.5 h-5 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+                  <h3 className="text-[13px] font-bold text-black mb-4 flex items-center gap-2 tracking-tight">
+                    <span className="w-1 h-5 bg-black rounded-full" />
                     Personal Information
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -425,10 +430,10 @@ export default function UpdateAdmission() {
                   </div>
                 </div>
 
-                {/* Academic Information */}
+                {/* ---------- Academic Information ---------- */}
                 <div className="mb-8">
-                  <h3 className="text-sm md:text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <span className="w-1.5 h-5 bg-gradient-to-b from-emerald-500 to-teal-500 rounded-full" />
+                  <h3 className="text-[13px] font-bold text-black mb-4 flex items-center gap-2 tracking-tight">
+                    <span className="w-1 h-5 bg-black rounded-full" />
                     Academic Information
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -467,10 +472,10 @@ export default function UpdateAdmission() {
                   </div>
                 </div>
 
-                {/* Father Information */}
+                {/* ---------- Father / Guardian Information ---------- */}
                 <div className="mb-8">
-                  <h3 className="text-sm md:text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <span className="w-1.5 h-5 bg-gradient-to-b from-pink-500 to-purple-500 rounded-full" />
+                  <h3 className="text-[13px] font-bold text-black mb-4 flex items-center gap-2 tracking-tight">
+                    <span className="w-1 h-5 bg-black rounded-full" />
                     Father / Guardian Information
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -504,38 +509,33 @@ export default function UpdateAdmission() {
                   </div>
                 </div>
 
-                {/* Submit */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-between items-center pt-5 border-t border-slate-100">
-                  <div className="text-xs text-slate-500">
-                    <span className="text-indigo-500 font-bold">*</span> Required fields
+                {/* ---------- Submit ---------- */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-between items-center pt-5 border-t border-neutral-100">
+                  <div className="text-xs text-neutral-500 font-medium">
+                    <span className="text-black font-bold">*</span> Required fields
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => router.back()}
                       disabled={submitting}
-                      className="flex-1 sm:flex-none px-5 py-3 bg-slate-100 text-slate-700 font-bold text-sm uppercase tracking-wider rounded-xl hover:bg-slate-200 transition disabled:opacity-50"
+                      className="flex-1 sm:flex-none px-5 py-3 bg-neutral-100 text-black font-semibold text-[13px] rounded-lg hover:bg-neutral-200 transition disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-bold text-sm uppercase tracking-wider rounded-xl hover:from-indigo-500 hover:to-purple-500 active:scale-[0.98] transition-all shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="flex-1 sm:flex-none px-6 py-3 bg-black text-white font-semibold text-[13px] rounded-lg hover:bg-neutral-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {submitting ? (
                         <>
-                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
+                          <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           Updating...
                         </>
                       ) : (
                         <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                          </svg>
+                          <FiCheck className="w-4 h-4" />
                           Update Application
                         </>
                       )}
@@ -546,8 +546,8 @@ export default function UpdateAdmission() {
             )}
           </div>
 
-          <div className="text-center mt-8 text-slate-400 text-xs">
-            <p>© 2026 AMC College. All rights reserved.</p>
+          <div className="text-center mt-8 text-neutral-400 text-xs font-medium">
+            <p>© 2026 AMC College</p>
           </div>
         </div>
       </div>

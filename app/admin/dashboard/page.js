@@ -9,6 +9,22 @@ import {
   deleteAdmissionByStudentId,
 } from "@/app/services/service.js";
 
+// ---------- react-icons ----------
+import {
+  HiOutlinePlus,
+  HiOutlineUsers,
+  HiOutlineCheckCircle,
+  HiOutlineClock,
+  HiOutlineXCircle,
+  HiOutlineSearch,
+  HiOutlineRefresh,
+  HiOutlinePencil,
+  HiOutlineTrash,
+  HiOutlineX,
+  HiOutlineCheck,
+  HiOutlineEmojiSad,
+} from "react-icons/hi";
+
 export default function Dashboard() {
   const router = useRouter();
   const [students, setStudents] = useState([]);
@@ -28,15 +44,23 @@ export default function Dashboard() {
     fatherName: "",
     fatherCnic: "",
     fatherContact: "",
+    status: "pending",
   });
   const auth = useSelector((state) => state.auth.user);
 
+  // ✅ Stats
   const stats = useMemo(() => {
-    const activeAdmissions = students.filter((s) => s.classInAdmission).length;
+    const total = students.length;
+    const approved = students.filter((s) => s.status === "approved").length;
+    const pending = students.filter(
+      (s) => !s.status || s.status === "pending"
+    ).length;
+    const rejected = students.filter((s) => s.status === "rejected").length;
     const uniqueClasses = new Set(
       students.map((s) => s.classInAdmission).filter(Boolean)
     ).size;
-    return { total: students.length, active: activeAdmissions, classes: uniqueClasses };
+
+    return { total, approved, pending, rejected, classes: uniqueClasses };
   }, [students]);
 
   const filteredStudents = useMemo(() => {
@@ -47,7 +71,8 @@ export default function Dashboard() {
         (s.name || "").toLowerCase().includes(q) ||
         (s.studentId || s.id || "").toString().toLowerCase().includes(q) ||
         (s.classInAdmission || "").toLowerCase().includes(q) ||
-        (s.fatherName || "").toLowerCase().includes(q)
+        (s.fatherName || "").toLowerCase().includes(q) ||
+        (s.status || "").toLowerCase().includes(q)
     );
   }, [students, searchQuery]);
 
@@ -73,7 +98,9 @@ export default function Dashboard() {
     setEditingStudent(student);
     setEditFormData({
       name: student.name || "",
-      dateOfBirth: student.dateOfBirth || "",
+      dateOfBirth: student.dateOfBirth
+        ? String(student.dateOfBirth).slice(0, 10)
+        : "",
       cnicNo: student.cnicNo || "",
       contactNo: student.contactNo || "",
       classInAdmission: student.classInAdmission || "",
@@ -83,6 +110,7 @@ export default function Dashboard() {
       fatherName: student.fatherName || "",
       fatherCnic: student.fatherCnic || "",
       fatherContact: student.fatherContact || "",
+      status: student.status || "pending",
     });
     setShowEditModal(true);
   }, []);
@@ -104,6 +132,7 @@ export default function Dashboard() {
         setEditingStudent(null);
       } catch (error) {
         console.error("Error updating student:", error);
+        alert(error?.response?.data?.message || "Failed to update student");
       } finally {
         setLoading(false);
       }
@@ -111,10 +140,39 @@ export default function Dashboard() {
     [editingStudent, editFormData, fetchStudents]
   );
 
+  const handleStatusChange = useCallback(
+    async (student, newStatus) => {
+      const studentId = student.studentId || student.id;
+      if (!studentId) return;
+
+      const prevStudents = students;
+      setStudents((prev) =>
+        prev.map((s) =>
+          (s.studentId || s.id) === studentId
+            ? { ...s, status: newStatus }
+            : s
+        )
+      );
+
+      try {
+        await updateAdmissionByStudentId(studentId, { status: newStatus });
+      } catch (error) {
+        console.error("Error updating status:", error);
+        alert(error?.response?.data?.message || "Failed to update status");
+        setStudents(prevStudents);
+      }
+    },
+    [students]
+  );
+
   const handleDelete = useCallback(
     async (student) => {
       const studentId = student.studentId || student.id;
-      if (window.confirm(`Are you sure you want to delete student ${studentId}?`)) {
+      if (
+        window.confirm(
+          `Are you sure you want to delete student ${studentId}?`
+        )
+      ) {
         setLoading(true);
         try {
           await deleteAdmissionByStudentId(studentId);
@@ -134,112 +192,91 @@ export default function Dashboard() {
   }, [router]);
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
-      {/* Animated background blobs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-300/30 rounded-full blur-3xl animate-blob"></div>
-        <div className="absolute top-1/3 -right-40 w-96 h-96 bg-indigo-300/30 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+    <div className="flex flex-col md:flex-row min-h-screen bg-neutral-50">
+      {/* ---------- Sidebar ---------- */}
+      <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0">
+        <Sidebar />
       </div>
 
-      {/* Sidebar */}
-   <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0 relative z-50">
-  <Sidebar />
-</div>
+      {/* ---------- Main Content ---------- */}
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10">
 
-      {/* Main Content */}
-      <div className="flex-1  p-[30px] md:p-6 lg:p-8 overflow-y-auto w-full max-w-5xl  m-auto relative z-10">
-        <div className="max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4 animate-fade-in-down">
-            <div>
-              <h1 className="text-2xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Student Management
-              </h1>
-              <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
-                <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                View and manage all student admissions
-              </p>
-            </div>
-            <button
-              onClick={handleAddNew}
-              className="group relative px-5 md:px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-2 text-sm whitespace-nowrap"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-              <svg
-                className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:rotate-90"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          {/* ---------- HEADER (subtle orange accent) ---------- */}
+          <div className="relative bg-white rounded-2xl mb-6 md:mb-8 border border-neutral-200 border-l-4 border-l-orange-500 overflow-hidden">
+            <div className="px-6 py-7 md:px-8 md:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center flex-shrink-0 border border-orange-100">
+                  <HiOutlineUsers className="w-6 h-6 text-orange-600" />
+                </div>
+                <div>
+                  <h1 className="text-xl md:text-2xl font-semibold text-black tracking-tight">
+                    Student Management
+                  </h1>
+                  <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                    View and manage all student admissions
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleAddNew}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white text-sm font-semibold rounded-lg hover:bg-orange-700 active:scale-[0.98] transition-all duration-200 shadow-sm self-start sm:self-auto"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              <span className="relative z-10">Add New Student</span>
-            </button>
+                <HiOutlinePlus className="w-4 h-4" />
+                Add New Student
+              </button>
+            </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5 mb-6 md:mb-8">
+          {/* ---------- STATS ---------- */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
             <StatCard
               label="Total Students"
               value={stats.total}
-              gradient="from-blue-500 to-cyan-500"
-              icon={
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              }
+              icon={<HiOutlineUsers className="w-4 h-4" />}
+              featured
             />
             <StatCard
-              label="Active Admissions"
-              value={stats.active}
-              gradient="from-green-500 to-emerald-500"
-              icon={
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              }
+              label="Approved"
+              value={stats.approved}
+              icon={<HiOutlineCheckCircle className="w-4 h-4" />}
             />
             <StatCard
-              label="Classes"
-              value={stats.classes}
-              gradient="from-purple-500 to-pink-500"
-              icon={
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              }
+              label="Pending"
+              value={stats.pending}
+              icon={<HiOutlineClock className="w-4 h-4" />}
+            />
+            <StatCard
+              label="Rejected"
+              value={stats.rejected}
+              icon={<HiOutlineXCircle className="w-4 h-4" />}
             />
           </div>
 
-          {/* Students Table */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-white/50 animate-fade-in-up">
-            {/* Search Bar */}
-            <div className="px-4 md:px-6 py-4 border-b border-gray-200/50 flex items-center gap-3">
+          {/* ---------- STUDENTS TABLE ---------- */}
+          <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
+            {/* Search bar */}
+            <div className="px-4 md:px-6 py-4 border-b border-neutral-100 flex items-center gap-3">
               <div className="relative flex-1 max-w-md">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                 <input
                   type="text"
                   placeholder="Search students..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white/70 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg text-sm text-black placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:bg-white transition-all"
                 />
               </div>
               <button
                 onClick={fetchStudents}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200 hover:scale-110 active:scale-95"
+                className="p-2.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-all duration-200"
                 title="Refresh"
               >
-                <svg
-                  className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <HiOutlineRefresh
+                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                />
               </button>
             </div>
 
@@ -247,78 +284,140 @@ export default function Dashboard() {
               {loading && students.length === 0 ? (
                 <LoadingSkeleton />
               ) : filteredStudents.length === 0 ? (
-                <div className="text-center py-16 animate-fade-in">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4">
-                    <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                <div className="text-center py-16">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-50 mb-4 border border-orange-100">
+                    <HiOutlineEmojiSad className="w-8 h-8 text-orange-500" />
                   </div>
-                  <p className="text-gray-600 text-lg font-medium">
-                    {searchQuery ? "No matching students found" : "No students found"}
+                  <p className="text-black text-base font-semibold tracking-tight">
+                    {searchQuery
+                      ? "No matching students found"
+                      : "No students found"}
+                  </p>
+                  <p className="text-neutral-500 text-sm mt-1 mb-5">
+                    {searchQuery
+                      ? "Try a different search term"
+                      : "Add your first student to get started"}
                   </p>
                   <button
                     onClick={handleAddNew}
-                    className="mt-4 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg transition-all"
                   >
+                    <HiOutlinePlus className="w-4 h-4" />
                     Add First Student
                   </button>
                 </div>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-gradient-to-r from-[#0a0e0d] to-[#1a2422] text-white">
+                  <thead className="bg-neutral-50 border-b border-neutral-200">
                     <tr>
-                      <th className="px-4 py-3 text-left font-semibold">Student ID</th>
-                      <th className="px-4 py-3 text-left font-semibold">Name</th>
-                      <th className="px-4 py-3 text-left hidden md:table-cell font-semibold">CNIC</th>
-                      <th className="px-4 py-3 text-left hidden lg:table-cell font-semibold">Contact</th>
-                      <th className="px-4 py-3 text-left font-semibold">Class</th>
-                      <th className="px-4 py-3 text-left hidden sm:table-cell font-semibold">Father's Name</th>
-                      <th className="px-4 py-3 text-center font-semibold">Actions</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Student ID
+                      </th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Name
+                      </th>
+                      <th className="px-4 py-3 text-left hidden md:table-cell text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        CNIC
+                      </th>
+                      <th className="px-4 py-3 text-left hidden lg:table-cell text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Contact
+                      </th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Class
+                      </th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left hidden sm:table-cell text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Father's Name
+                      </th>
+                      <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-neutral-100">
                     {filteredStudents.map((student, index) => (
                       <tr
                         key={student.studentId || student.id || index}
-                        className="group hover:bg-gradient-to-r hover:from-blue-50/70 hover:to-indigo-50/70 transition-all duration-200 animate-fade-in-row"
-                        style={{ animationDelay: `${index * 40}ms` }}
+                        className="group hover:bg-orange-50/40 transition-all duration-200"
                       >
-                        <td className="px-4 py-3 font-medium text-gray-900">
+                        <td className="px-4 py-3.5 font-medium text-black whitespace-nowrap">
                           <span className="inline-flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover:animate-ping"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                             {student.studentId || student.id || "N/A"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-700 font-medium">{student.name || "N/A"}</td>
-                        <td className="px-4 py-3 text-gray-600 hidden md:table-cell font-mono text-xs">
+                        <td className="px-4 py-3.5 text-black font-medium">
+                          {student.name || "N/A"}
+                        </td>
+                        <td className="px-4 py-3.5 text-neutral-600 hidden md:table-cell font-mono text-xs">
                           {student.cnicNo || "N/A"}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">{student.contactNo || "N/A"}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2.5 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 rounded-full text-xs font-semibold inline-block transition-transform duration-200 group-hover:scale-105">
+                        <td className="px-4 py-3.5 text-neutral-600 hidden lg:table-cell">
+                          {student.contactNo || "N/A"}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className="px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-semibold inline-block border border-orange-100">
                             {student.classInAdmission || "N/A"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{student.fatherName || "N/A"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold inline-block capitalize border ${
+                              student.status === "approved"
+                                ? "bg-orange-600 text-white border-orange-600"
+                                : student.status === "rejected"
+                                ? "bg-white text-neutral-400 border-neutral-200 line-through"
+                                : "bg-orange-50 text-orange-700 border-orange-200"
+                            }`}
+                          >
+                            {student.status || "pending"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-neutral-600 hidden sm:table-cell">
+                          {student.fatherName || "N/A"}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {student.status !== "approved" && (
+                              <button
+                                onClick={() =>
+                                  handleStatusChange(student, "approved")
+                                }
+                                className="p-1.5 text-orange-600 hover:bg-orange-600 hover:text-white rounded-lg transition-all duration-200"
+                                title="Approve"
+                              >
+                                <HiOutlineCheck className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            {student.status !== "rejected" && (
+                              <button
+                                onClick={() =>
+                                  handleStatusChange(student, "rejected")
+                                }
+                                className="p-1.5 text-neutral-500 hover:bg-neutral-800 hover:text-white rounded-lg transition-all duration-200"
+                                title="Reject"
+                              >
+                                <HiOutlineX className="w-4 h-4" />
+                              </button>
+                            )}
+
                             <button
                               onClick={() => handleEdit(student)}
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 hover:rotate-6"
+                              className="p-1.5 text-orange-600 hover:bg-orange-600 hover:text-white rounded-lg transition-all duration-200"
                               title="Edit"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
+                              <HiOutlinePencil className="w-4 h-4" />
                             </button>
+
                             <button
                               onClick={() => handleDelete(student)}
-                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 hover:-rotate-6"
+                              className="p-1.5 text-orange-700 hover:bg-orange-700 hover:text-white rounded-lg transition-all duration-200"
                               title="Delete"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
+                              <HiOutlineTrash className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -331,18 +430,23 @@ export default function Dashboard() {
 
             {/* Footer */}
             {filteredStudents.length > 0 && (
-              <div className="px-4 md:px-6 py-3 bg-gradient-to-r from-gray-50 to-blue-50/50 border-t text-xs text-gray-600 flex justify-between items-center">
+              <div className="px-4 md:px-6 py-3 bg-neutral-50 border-t border-neutral-200 text-xs text-neutral-600 flex justify-between items-center flex-wrap gap-2">
                 <span className="font-medium">
-                  Showing <span className="text-blue-600 font-bold">{filteredStudents.length}</span> of{" "}
-                  <span className="text-blue-600 font-bold">{students.length}</span> student(s)
+                  Showing{" "}
+                  <span className="text-orange-600 font-bold">
+                    {filteredStudents.length}
+                  </span>{" "}
+                  of{" "}
+                  <span className="text-orange-600 font-bold">
+                    {students.length}
+                  </span>{" "}
+                  student(s)
                 </span>
                 <button
                   onClick={fetchStudents}
-                  className="text-blue-600 hover:text-blue-800 font-medium transition-all duration-200 hover:scale-105 flex items-center gap-1"
+                  className="text-orange-600 hover:text-orange-800 font-medium transition-all flex items-center gap-1"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <HiOutlineRefresh className="w-3 h-3" />
                   Refresh
                 </button>
               </div>
@@ -350,94 +454,188 @@ export default function Dashboard() {
           </div>
 
           {/* Footer */}
-          <div className="text-center mt-6 text-gray-500 text-xs animate-fade-in">
-            <p>© 2026 AMC College. All rights reserved.</p>
+          <div className="text-center mt-10">
+            <p className="text-xs text-neutral-400 font-medium">
+              © 2026 AMC College
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* ---------- EDIT MODAL ---------- */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in border border-white/50">
-            <div className="bg-gradient-to-r from-[#0a0e0d] to-[#1a2422] px-6 py-4 rounded-t-2xl flex justify-between items-center sticky top-0 z-10">
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowEditModal(false);
+            setEditingStudent(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-neutral-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-white border-b border-neutral-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
+                <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center border border-orange-100">
+                  <HiOutlinePencil className="w-4 h-4 text-orange-600" />
                 </div>
-                <h2 className="text-white text-lg font-semibold">Edit Student</h2>
+                <h2 className="text-black text-base md:text-lg font-semibold tracking-tight">
+                  Edit Student
+                </h2>
               </div>
               <button
                 onClick={() => {
                   setShowEditModal(false);
                   setEditingStudent(null);
                 }}
-                className="text-gray-400 hover:text-white transition-all duration-200 hover:rotate-90 p-1"
+                className="text-neutral-400 hover:text-black hover:bg-neutral-100 transition-all duration-200 p-1.5 rounded-lg"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <HiOutlineX className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField label="Full Name" name="name" value={editFormData.name} onChange={handleEditChange} required />
-                <FormField label="Date of Birth" name="dateOfBirth" type="date" value={editFormData.dateOfBirth} onChange={handleEditChange} required />
-                <FormField label="CNIC / B-Form" name="cnicNo" value={editFormData.cnicNo} onChange={handleEditChange} required placeholder="XXXXX-XXXXXXX-X" />
-                <FormField label="Contact Number" name="contactNo" value={editFormData.contactNo} onChange={handleEditChange} required placeholder="03XX-XXXXXXX" />
+                <FormField
+                  label="Full Name"
+                  name="name"
+                  value={editFormData.name}
+                  onChange={handleEditChange}
+                  required
+                />
+                <FormField
+                  label="Date of Birth"
+                  name="dateOfBirth"
+                  type="date"
+                  value={editFormData.dateOfBirth}
+                  onChange={handleEditChange}
+                  required
+                />
+                <FormField
+                  label="CNIC / B-Form"
+                  name="cnicNo"
+                  value={editFormData.cnicNo}
+                  onChange={handleEditChange}
+                  required
+                  placeholder="XXXXX-XXXXXXX-X"
+                />
+                <FormField
+                  label="Contact Number"
+                  name="contactNo"
+                  value={editFormData.contactNo}
+                  onChange={handleEditChange}
+                  required
+                  placeholder="03XX-XXXXXXX"
+                />
                 <SelectField
                   label="Class"
                   name="classInAdmission"
                   value={editFormData.classInAdmission}
                   onChange={handleEditChange}
                   required
-                  options={["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12"]}
+                  options={[
+                    "Class 6",
+                    "Class 7",
+                    "Class 8",
+                    "Class 9",
+                    "Class 10",
+                    "Class 11",
+                    "Class 12",
+                  ]}
                 />
-                <FormField label="Number in Last Class" name="numberInLastClass" value={editFormData.numberInLastClass} onChange={handleEditChange} placeholder="e.g., 45" />
-                <FormField label="Roll No of Last Class" name="rollNoOfLastClass" value={editFormData.rollNoOfLastClass} onChange={handleEditChange} placeholder="e.g., 2023-001" />
+                <FormField
+                  label="Number in Last Class"
+                  name="numberInLastClass"
+                  value={editFormData.numberInLastClass}
+                  onChange={handleEditChange}
+                  placeholder="e.g., 45"
+                />
+                <FormField
+                  label="Roll No of Last Class"
+                  name="rollNoOfLastClass"
+                  value={editFormData.rollNoOfLastClass}
+                  onChange={handleEditChange}
+                  placeholder="e.g., 2023-001"
+                />
                 <SelectField
                   label="Board of Last Class"
                   name="boardOfLastClass"
                   value={editFormData.boardOfLastClass}
                   onChange={handleEditChange}
-                  options={["Punjab Board", "Sindh Board", "KPK Board", "Balochistan Board", "Federal Board", "Other"]}
+                  options={[
+                    "Punjab Board",
+                    "Sindh Board",
+                    "KPK Board",
+                    "Balochistan Board",
+                    "Federal Board",
+                    "Other",
+                  ]}
                 />
-                <FormField label="Father's Name" name="fatherName" value={editFormData.fatherName} onChange={handleEditChange} required placeholder="Enter father's name" />
-                <FormField label="Father's CNIC" name="fatherCnic" value={editFormData.fatherCnic} onChange={handleEditChange} required placeholder="XXXXX-XXXXXXX-X" />
+                <FormField
+                  label="Father's Name"
+                  name="fatherName"
+                  value={editFormData.fatherName}
+                  onChange={handleEditChange}
+                  required
+                  placeholder="Enter father's name"
+                />
+                <FormField
+                  label="Father's CNIC"
+                  name="fatherCnic"
+                  value={editFormData.fatherCnic}
+                  onChange={handleEditChange}
+                  required
+                  placeholder="XXXXX-XXXXXXX-X"
+                />
                 <div className="md:col-span-2">
-                  <FormField label="Father's Contact" name="fatherContact" value={editFormData.fatherContact} onChange={handleEditChange} required placeholder="03XX-XXXXXXX" />
+                  <FormField
+                    label="Father's Contact"
+                    name="fatherContact"
+                    value={editFormData.fatherContact}
+                    onChange={handleEditChange}
+                    required
+                    placeholder="03XX-XXXXXXX"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <SelectField
+                    label="Status"
+                    name="status"
+                    value={editFormData.status}
+                    onChange={handleEditChange}
+                    required
+                    options={["pending", "approved", "rejected"]}
+                  />
                 </div>
               </div>
 
-              <div className="flex gap-3 justify-end mt-6 pt-4 border-t">
+              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-neutral-100">
                 <button
                   type="button"
                   onClick={() => {
                     setShowEditModal(false);
                     setEditingStudent(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 hover:scale-105 active:scale-95"
+                  className="px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-700 text-sm font-medium hover:bg-neutral-50 transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+                  className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg transition-all shadow-sm disabled:opacity-50 flex items-center gap-2"
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Updating...
                     </>
                   ) : (
                     <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <HiOutlineCheck className="w-4 h-4" />
                       Update Student
                     </>
                   )}
@@ -447,95 +645,57 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-      {/* Global animations */}
-      <style jsx global>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob { animation: blob 12s infinite ease-in-out; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-
-        @keyframes fade-in-down {
-          from { opacity: 0; transform: translateY(-12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-down { animation: fade-in-down 0.5s ease-out both; }
-
-        @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up { animation: fade-in-up 0.6s ease-out both; }
-
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in { animation: fade-in 0.4s ease-out both; }
-
-        @keyframes fade-in-row {
-          from { opacity: 0; transform: translateX(-8px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        .animate-fade-in-row { animation: fade-in-row 0.4s ease-out both; }
-
-        @keyframes scale-in {
-          from { opacity: 0; transform: scale(0.95) translateY(10px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .animate-scale-in { animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-
-        @keyframes shimmer {
-          0% { background-position: -1000px 0; }
-          100% { background-position: 1000px 0; }
-        }
-        .animate-shimmer {
-          background: linear-gradient(90deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
-          background-size: 1000px 100%;
-          animation: shimmer 2s infinite linear;
-        }
-      `}</style>
     </div>
   );
 }
 
-/* ---------- Sub Components ---------- */
-
-function StatCard({ label, value, gradient, icon }) {
-  return (
-    <div className="group relative bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg p-4 sm:p-5 border border-white/50 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-      {/* gradient bar */}
-      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient}`}></div>
-      {/* glow */}
-      <div
-        className={`absolute -right-8 -top-8 w-24 h-24 rounded-full bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-300 blur-2xl`}
-      ></div>
-      <div className="flex items-center justify-between relative z-10">
-        <div>
-          <p className="text-xs sm:text-sm text-gray-600 font-medium">{label}</p>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1 tabular-nums">{value}</p>
-        </div>
-        <div
-          className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
-        >
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+/* ---------- Stat Card ---------- */
+function StatCard({ label, value, icon, featured = false }) {
+  if (featured) {
+    return (
+      <div className="rounded-xl p-4 bg-orange-600 border border-orange-700 transition-all duration-300 hover:-translate-y-1 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-7 h-7 rounded-md bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 text-white">
             {icon}
-          </svg>
+          </div>
+          <p className="text-[10px] font-semibold text-white/80 uppercase tracking-wide">
+            {label}
+          </p>
         </div>
+        <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
       </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-neutral-200 p-4 hover:border-orange-300 hover:-translate-y-1 transition-all duration-300">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-7 h-7 rounded-md bg-orange-50 border border-orange-100 flex items-center justify-center flex-shrink-0 text-orange-600">
+          {icon}
+        </div>
+        <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wide">
+          {label}
+        </p>
+      </div>
+      <p className="text-2xl font-bold text-black tabular-nums">{value}</p>
     </div>
   );
 }
 
-function FormField({ label, name, value, onChange, type = "text", required, placeholder }) {
+/* ---------- Form Field ---------- */
+function FormField({
+  label,
+  name,
+  value,
+  onChange,
+  type = "text",
+  required,
+  placeholder,
+}) {
   return (
-    <div className="group">
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label} {required && <span className="text-red-500">*</span>}
+    <div>
+      <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wide mb-1.5">
+        {label} {required && <span className="text-orange-600">*</span>}
       </label>
       <input
         type={type}
@@ -544,28 +704,29 @@ function FormField({ label, name, value, onChange, type = "text", required, plac
         onChange={onChange}
         required={required}
         placeholder={placeholder}
-        className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-black transition-all duration-200 hover:border-blue-400 focus:shadow-lg focus:shadow-blue-100"
+        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:bg-white text-sm text-black placeholder-neutral-400 font-medium transition-all"
       />
     </div>
   );
 }
 
+/* ---------- Select Field ---------- */
 function SelectField({ label, name, value, onChange, options, required }) {
   return (
-    <div className="group">
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label} {required && <span className="text-red-500">*</span>}
+    <div>
+      <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wide mb-1.5">
+        {label} {required && <span className="text-orange-600">*</span>}
       </label>
       <select
         name={name}
         value={value}
         onChange={onChange}
         required={required}
-        className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-black transition-all duration-200 hover:border-blue-400 focus:shadow-lg focus:shadow-blue-100 bg-white"
+        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:bg-white text-sm text-black font-medium capitalize transition-all"
       >
         <option value="">Select {label}</option>
         {options.map((opt) => (
-          <option key={opt} value={opt}>
+          <option key={opt} value={opt} className="capitalize">
             {opt}
           </option>
         ))}
@@ -574,13 +735,15 @@ function SelectField({ label, name, value, onChange, options, required }) {
   );
 }
 
+/* ---------- Loading Skeleton ---------- */
 function LoadingSkeleton() {
   return (
     <div className="p-6 space-y-3">
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex gap-3" style={{ animationDelay: `${i * 100}ms` }}>
-          <div className="h-10 flex-1 rounded-lg animate-shimmer"></div>
-        </div>
+        <div
+          key={i}
+          className="h-10 rounded-lg bg-neutral-100 animate-pulse"
+        />
       ))}
     </div>
   );

@@ -4,6 +4,21 @@ import { useState, useEffect, useCallback } from "react";
 import { getAllNotifications, deleteNotification } from "@/app/services/service.js";
 import Sidebar from "@/app/components/sidebar";
 
+// ---------- react-icons ----------
+import {
+  HiOutlineBell,
+  HiOutlineClock,
+  HiOutlineStar,
+  HiOutlineClipboardList,
+  HiOutlineRefresh,
+  HiOutlineTrash,
+  HiOutlineExclamation,
+  HiOutlineChatAlt,
+  HiOutlineCalendar,
+  HiOutlineInbox,
+  HiOutlineX,
+} from "react-icons/hi";
+
 export default function AllNotification() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,101 +91,61 @@ export default function AllNotification() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="flex flex-col md:flex-row min-h-screen bg-neutral-50">
       {/* Sidebar */}
       <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0">
         <Sidebar />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
-          {/* ---------- HERO HEADER ---------- */}
-          <div className="relative bg-[rgb(19,18,18)] rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl mb-6">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10">
 
-            <div className="relative p-6 md:p-8 lg:p-10 flex flex-col md:flex-row items-center md:items-start gap-6">
-              <div className="relative flex-shrink-0">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center ring-4 ring-white/20 shadow-2xl">
-                  <svg
-                    className="w-10 h-10 md:w-12 md:h-12 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                    />
-                  </svg>
+          {/* ---------- HEADER (subtle orange accent) ---------- */}
+          <div className="relative bg-white rounded-2xl mb-6 md:mb-8 border border-neutral-200 border-l-4 border-l-orange-500 overflow-hidden">
+            <div className="px-6 py-7 md:px-8 md:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center flex-shrink-0 border border-orange-100">
+                  <HiOutlineBell className="w-6 h-6 text-orange-600" />
                 </div>
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white shadow-lg animate-pulse"></div>
+                <div>
+                  <h1 className="text-xl md:text-2xl font-semibold text-black tracking-tight">
+                    Notifications
+                  </h1>
+                  <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                    Stay updated with all announcements from AMC College
+                  </p>
+                </div>
               </div>
 
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1">
-                  Notifications
-                </h1>
-                <p className="text-blue-200 text-sm md:text-base mb-3">
-                  Stay updated with all announcements from AMC College
-                </p>
-
-                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm text-white text-xs md:text-sm rounded-full border border-white/20">
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                    {notifications.length} Total
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-100 text-orange-700 text-xs rounded-full font-semibold">
+                  <HiOutlineClipboardList className="w-3.5 h-3.5" />
+                  {notifications.length} Total
+                </span>
+                {mounted && notifications[0]?.createdAt && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 border border-neutral-200 text-neutral-700 text-xs rounded-full font-semibold">
+                    <HiOutlineClock className="w-3.5 h-3.5" />
+                    Updated {timeAgo(notifications[0].createdAt)}
                   </span>
-                  {mounted && notifications[0]?.createdAt && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-sm text-white text-xs md:text-sm rounded-full border border-white/20">
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Updated {timeAgo(notifications[0].createdAt)}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* ---------- STAT CARDS ---------- */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6">
             <StatCard
               label="Total Notifications"
               value={notifications.length}
-              gradient="from-blue-500 to-indigo-600"
-              icon="bell"
+              icon={<HiOutlineBell className="w-4 h-4" />}
+              featured
             />
             <StatCard
               label="Latest Title"
               value={notifications[0]?.title || "—"}
-              gradient="from-emerald-500 to-teal-600"
-              icon="star"
+              icon={<HiOutlineStar className="w-4 h-4" />}
               isText
             />
             <StatCard
@@ -180,37 +155,24 @@ export default function AllNotification() {
                   ? timeAgo(notifications[0].createdAt)
                   : "—"
               }
-              gradient="from-purple-500 to-pink-600"
-              icon="clock"
+              icon={<HiOutlineClock className="w-4 h-4" />}
               isText
             />
           </div>
 
-          {/* ---------- NOTIFICATIONS LIST CARD ---------- */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-            {/* Card Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+          {/* ---------- NOTIFICATIONS LIST ---------- */}
+          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm">
+            {/* Card header */}
+            <div className="px-5 md:px-6 py-4 border-b border-neutral-100 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-                  <svg
-                    className="w-5 h-5 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    />
-                  </svg>
+                <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center">
+                  <HiOutlineInbox className="w-4 h-4 text-orange-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800">
+                  <h2 className="text-base font-semibold text-black tracking-tight">
                     All Notifications
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[11px] text-neutral-500">
                     {notifications.length} total records
                   </p>
                 </div>
@@ -219,59 +181,40 @@ export default function AllNotification() {
               <button
                 onClick={fetchNotifications}
                 disabled={loading}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all disabled:opacity-50 transform hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm"
               >
-                <svg
+                <HiOutlineRefresh
                   className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
+                />
                 Refresh
               </button>
             </div>
 
             {/* Body */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-                <p className="mt-4 text-sm text-slate-500 font-medium animate-pulse">
-                  Loading notifications...
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full border-2 border-neutral-200" />
+                  <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-transparent border-t-orange-500 animate-spin" />
+                </div>
+                <p className="mt-4 text-xs text-neutral-500 font-medium">
+                  Loading notifications
                 </p>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-20 px-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <svg
-                    className="w-10 h-10 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                    />
-                  </svg>
+              <div className="text-center py-16 px-6">
+                <div className="w-16 h-16 bg-orange-50 border border-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                  <HiOutlineBell className="w-8 h-8 text-orange-500" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">
+                <h3 className="text-base font-semibold text-black mb-1 tracking-tight">
                   No notifications yet
                 </h3>
-                <p className="text-slate-500 text-sm">
+                <p className="text-neutral-500 text-sm">
                   Check back later for updates from the college
                 </p>
               </div>
             ) : (
-              <div className="p-4 md:p-6 space-y-4">
+              <div className="p-4 md:p-6 space-y-3">
                 {notifications.map((n, index) => (
                   <NotificationCard
                     key={n._id || index}
@@ -288,64 +231,58 @@ export default function AllNotification() {
             )}
           </div>
 
-          {/* ---------- FOOTER ---------- */}
-          <div className="text-center mt-8 text-xs text-slate-500">
-            <p>© 2026 AMC College. All rights reserved.</p>
+          {/* Footer */}
+          <div className="text-center mt-10">
+            <p className="text-xs text-neutral-400 font-medium">
+              © 2026 AMC College
+            </p>
           </div>
         </div>
       </div>
 
-      {/* ---------- DELETE CONFIRMATION MODAL ---------- */}
+      {/* ---------- DELETE MODAL ---------- */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-in border border-white/50">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-neutral-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
-            <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
+            <div className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center">
+                  <HiOutlineTrash className="w-4 h-4 text-orange-600" />
+                </div>
+                <h3 className="text-black font-semibold text-base tracking-tight">
+                  Delete Notification
+                </h3>
               </div>
-              <h3 className="text-white font-bold text-lg">Delete Notification</h3>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="text-neutral-400 hover:text-black hover:bg-neutral-100 p-1.5 rounded-lg transition-all"
+              >
+                <HiOutlineX className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Body */}
             <div className="p-6">
-              <p className="text-slate-700 text-sm leading-relaxed mb-2">
+              <p className="text-neutral-700 text-sm leading-relaxed mb-3">
                 Are you sure you want to delete this notification?
               </p>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">
-                <p className="text-sm font-semibold text-slate-800 truncate">
+              <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 mb-4">
+                <p className="text-sm font-semibold text-black truncate">
                   {confirmDelete.title || "Untitled"}
                 </p>
-                <p className="text-xs text-slate-500 truncate mt-0.5">
+                <p className="text-xs text-neutral-500 truncate mt-0.5">
                   {confirmDelete.message || "—"}
                 </p>
               </div>
-              <p className="text-xs text-red-600 font-medium flex items-center gap-1.5">
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
+              <p className="text-xs text-orange-700 font-semibold flex items-center gap-1.5">
+                <HiOutlineExclamation className="w-3.5 h-3.5" />
                 This action cannot be undone.
               </p>
             </div>
@@ -355,35 +292,23 @@ export default function AllNotification() {
               <button
                 onClick={() => setConfirmDelete(null)}
                 disabled={!!deletingId}
-                className="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 text-sm font-medium hover:bg-slate-50 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50"
+                className="px-4 py-2.5 border border-neutral-300 rounded-lg text-neutral-700 text-sm font-medium hover:bg-neutral-50 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(confirmDelete._id)}
                 disabled={!!deletingId}
-                className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-60 flex items-center gap-2"
+                className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-60 flex items-center gap-2 shadow-sm"
               >
                 {deletingId ? (
                   <>
-                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
+                    <HiOutlineTrash className="w-4 h-4" />
                     Delete
                   </>
                 )}
@@ -397,59 +322,42 @@ export default function AllNotification() {
 }
 
 /* ---------------- Stat Card ---------------- */
-function StatCard({ label, value, gradient, icon, isText }) {
-  const icons = {
-    bell: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-      />
-    ),
-    star: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-      />
-    ),
-    clock: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    ),
-  };
+function StatCard({ label, value, icon, featured = false, isText }) {
+  if (featured) {
+    return (
+      <div className="rounded-xl p-4 bg-orange-600 border border-orange-700 transition-all duration-300 hover:-translate-y-1 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-7 h-7 rounded-md bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 text-white">
+            {icon}
+          </div>
+          <p className="text-[10px] font-semibold text-white/80 uppercase tracking-wide">
+            {label}
+          </p>
+        </div>
+        <p
+          className={`font-bold text-white tabular-nums ${
+            isText ? "text-base truncate" : "text-2xl"
+          }`}
+        >
+          {value}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="group bg-white rounded-2xl shadow-lg border border-slate-100 p-5 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
-      <div
-        className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${gradient}`}
-      ></div>
-      <div className="flex items-center gap-3 mb-3">
-        <div
-          className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}
-        >
-          <svg
-            className="w-5 h-5 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {icons[icon]}
-          </svg>
+    <div className="bg-white rounded-xl border border-neutral-200 p-4 hover:border-orange-300 hover:-translate-y-1 transition-all duration-300">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-7 h-7 rounded-md bg-orange-50 border border-orange-100 flex items-center justify-center flex-shrink-0 text-orange-600">
+          {icon}
         </div>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wide">
           {label}
         </p>
       </div>
       <p
-        className={`font-bold text-slate-800 ${
-          isText ? "text-base truncate" : "text-3xl"
+        className={`font-bold text-black tabular-nums ${
+          isText ? "text-base truncate" : "text-2xl"
         }`}
       >
         {value}
@@ -468,38 +376,37 @@ function NotificationCard({
   onDelete,
   isDeleting,
 }) {
-  const gradients = [
-    "from-blue-500 to-indigo-600",
-    "from-emerald-500 to-teal-600",
-    "from-purple-500 to-pink-600",
-    "from-orange-500 to-red-600",
-    "from-cyan-500 to-blue-600",
+  // Subtle warm monochrome variations — no bright rainbows
+  const accents = [
+    "bg-orange-500",
+    "bg-neutral-800",
+    "bg-orange-400",
+    "bg-neutral-700",
+    "bg-orange-600",
   ];
-  const gradient = gradients[index % gradients.length];
+  const accent = accents[index % accents.length];
 
   return (
     <div
-      className={`group relative bg-white border border-slate-100 rounded-2xl p-5 hover:shadow-xl hover:border-slate-200 transition-all duration-300 overflow-hidden ${
+      className={`group relative bg-white border border-neutral-200 rounded-2xl p-5 hover:border-orange-300 transition-all duration-300 overflow-hidden ${
         isDeleting ? "opacity-60 pointer-events-none" : ""
       }`}
     >
-      {/* Left accent bar */}
+      {/* Left accent bar on hover */}
       <div
-        className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${gradient} opacity-0 group-hover:opacity-100 transition-opacity`}
+        className={`absolute left-0 top-0 bottom-0 w-1 ${accent} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
       ></div>
 
       <div className="flex items-start gap-4">
-        {/* Avatar with initials */}
+        {/* Index badge with initial */}
         <div className="flex-shrink-0">
-          <div
-            className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md`}
-          >
-            <span className="text-white font-bold text-lg">
+          <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center">
+            <span className="text-orange-600 font-bold text-lg">
               {n.title?.charAt(0).toUpperCase() || "N"}
             </span>
           </div>
           <div className="mt-2 flex justify-center">
-            <span className="text-[10px] font-bold text-slate-400">
+            <span className="text-[10px] font-bold text-neutral-400 tabular-nums">
               #{index + 1}
             </span>
           </div>
@@ -508,81 +415,45 @@ function NotificationCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
-            <h3 className="text-base md:text-lg font-bold text-slate-800 break-words leading-snug">
+            <h3 className="text-base md:text-lg font-semibold text-black break-words leading-snug tracking-tight">
               {n.title || "Untitled"}
             </h3>
 
             <div className="flex items-center gap-2">
               {mounted && n.createdAt && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-semibold rounded-full whitespace-nowrap">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 border border-orange-100 text-orange-700 text-[11px] font-semibold rounded-full whitespace-nowrap">
+                  <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
                   {timeAgo(n.createdAt)}
                 </span>
               )}
 
-              {/* DELETE BUTTON */}
+              {/* Delete button */}
               <button
                 onClick={onDelete}
                 disabled={isDeleting}
                 title="Delete notification"
-                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-50"
+                className="p-1.5 text-neutral-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all duration-200 disabled:opacity-50"
               >
                 {isDeleting ? (
-                  <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
+                  <HiOutlineTrash className="w-4 h-4" />
                 )}
               </button>
             </div>
           </div>
 
-          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words mb-3">
+          <p className="text-sm text-neutral-600 leading-relaxed whitespace-pre-wrap break-words mb-3">
             {n.message || "—"}
           </p>
 
-          <div className="flex items-center gap-4 pt-3 border-t border-dashed border-slate-100">
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+          <div className="flex items-center gap-4 pt-3 border-t border-dashed border-neutral-100 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 font-medium">
+              <HiOutlineCalendar className="w-3.5 h-3.5" />
               {mounted ? formatDate(n.createdAt) : "—"}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                />
-              </svg>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 font-medium">
+              <HiOutlineChatAlt className="w-3.5 h-3.5" />
               Announcement
             </span>
           </div>

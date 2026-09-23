@@ -2,42 +2,105 @@ import SeatConfig from "@/models/seatsModel.js";
 import AdmissionModel from "../models/admissionModel.js";
 import connectDB from "@/lib/db.js";
 
-// ADD / UPDATE (upsert) - className + shift ke base pe
+// ---------- Helper: validation for totalSeats and meritNo ----------
+// Skips any field that is not sent (or sent as "")
+function parseSeatNumbers({ totalSeats, meritNo }) {
+  const update = {};
+  const has = (v) => v !== undefined && v !== null && v !== "";
+
+  if (has(totalSeats)) {
+    const seats = Number(totalSeats);
+    if (!Number.isInteger(seats) || seats < 0) {
+      return { error: "totalSeats must be a whole number greater than or equal to 0" };
+    }
+    update.totalSeats = seats;
+  }
+
+  if (has(meritNo)) {
+    const merit = Number(meritNo);
+    if (isNaN(merit) || merit < 0 || merit > 100) {
+      return { error: "meritNo must be between 0 and 100" };
+    }
+    update.meritNo = merit;
+  }
+
+  return { update };
+}
+
+// ---------- ADD (create only) - based on className + shift ----------
 export async function setSeatConfig(req) {
   try {
     await connectDB();
-    const { className, shift, totalSeats } = await req.json();
+    const { className, shift, totalSeats, meritNo } = await req.json();
 
-    if (!className || !shift || totalSeats === undefined) {
+    if (!className || !shift) {
       return {
         success: false,
-        message: "className, shift aur totalSeats zaroori hain",
+        message: "className and shift are required",
         status: 400,
       };
     }
 
-    const config = await SeatConfig.findOneAndUpdate(
-      { className, shift },
-      { totalSeats },
-      { upsert: true, new: true }
-    );
+    const cleanClass = String(className).trim();
+    const cleanShift = String(shift).trim().toLowerCase();
+
+    // Duplicate check — same class + shift already exists?
+    const existing = await SeatConfig.findOne({
+      className: cleanClass,
+      shift: cleanShift,
+    });
+
+    if (existing) {
+      return {
+        success: false,
+        message: `A seat config for ${cleanClass} (${cleanShift}) already exists. Please edit it or choose a different shift.`,
+        status: 409,
+      };
+    }
+
+    const { update, error } = parseSeatNumbers({ totalSeats, meritNo });
+    if (error) {
+      return { success: false, message: error, status: 400 };
+    }
+
+    if (Object.keys(update).length === 0) {
+      return {
+        success: false,
+        message: "Please send at least one of totalSeats or meritNo",
+        status: 400,
+      };
+    }
+
+    const config = await SeatConfig.create({
+      className: cleanClass,
+      shift: cleanShift,
+      ...update,
+    });
 
     return {
       success: true,
-      message: "Seat config save ho gaya",
+      message: "Seat config saved successfully",
       data: config,
-      status: 200,
+      status: 201,
     };
   } catch (error) {
+    // Duplicate key from unique index (race condition)
+    if (error.code === 11000) {
+      return {
+        success: false,
+        message: "A record for this class and shift already exists",
+        status: 409,
+      };
+    }
     return {
       success: false,
-      message: error.message || "Kuch ghalat ho gaya",
+      message: error.message || "Something went wrong",
       status: 500,
     };
   }
 }
 
-// GET ALL with filled/remaining
+// ---------- GET ALL with filled/remaining ----------
 export async function getSeatAvailability() {
   try {
     await connectDB();
@@ -50,104 +113,143 @@ export async function getSeatAvailability() {
           shift: config.shift,
         });
 
+        const total = config.totalSeats ?? 0;
+
         return {
           _id: config._id,
           className: config.className,
           shift: config.shift,
-          totalSeats: config.totalSeats,
+          totalSeats: config.totalSeats ?? null,
+          meritNo: config.meritNo ?? null,
           filledSeats: filled,
-          remainingSeats: config.totalSeats - filled,
+          remainingSeats: Math.max(total - filled, 0),
         };
       })
     );
 
     return {
       success: true,
-      message: "Seat availability mil gayi",
+      message: "Seat availability fetched successfully",
       data: result,
       status: 200,
     };
   } catch (error) {
     return {
       success: false,
-      message: error.message || "Kuch ghalat ho gaya",
+      message: error.message || "Something went wrong",
       status: 500,
     };
   }
 }
 
-// UPDATE SINGLE (by id) — ab ye sahi se export ho raha hai
-export async function updateSeatInDb(req) {   // ← id parameter hatao
+// ---------- UPDATE by id ----------
+export async function updateSeatInDb(req) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");   // ✅ sirf yahan se
+    const id = searchParams.get("id");
 
     if (!id) {
-      return Response.json(
-        { success: false, message: "ID required" },
-        { status: 400 }
-      );
+      return { success: false, message: "ID is required", status: 400 };
     }
 
-    const body = await req.json();
-    const { className, shift, totalSeats } = body;
+    const { className, shift, totalSeats, meritNo } = await req.json();
+
+    const { update, error } = parseSeatNumbers({ totalSeats, meritNo });
+    if (error) {
+      return { success: false, message: error, status: 400 };
+    }
+
+    // Only update className if it was sent
+    if (className !== undefined) {
+      const c = String(className).trim();
+      if (!c) {
+        return { success: false, message: "className cannot be empty", status: 400 };
+      }
+      update.className = c;
+    }
+
+    // Only update shift if it was sent
+    if (shift !== undefined) {
+      const s = String(shift).trim().toLowerCase();
+      if (!s) {
+        return { success: false, message: "shift cannot be empty", status: 400 };
+      }
+      update.shift = s;
+    }
+
+    if (Object.keys(update).length === 0) {
+      return { success: false, message: "No fields provided for update", status: 400 };
+    }
 
     const updated = await SeatConfig.findByIdAndUpdate(
       id,
-      { className, shift, totalSeats },
+      { $set: update },
       { new: true, runValidators: true }
     );
 
     if (!updated) {
-      return Response.json(
-        { success: false, message: "Seat config nahi mila" },
-        { status: 404 }
-      );
+      return { success: false, message: "Seat config not found", status: 404 };
     }
 
-    return Response.json(
-      { success: true, message: "Seat updated successfully", data: updated },
-      { status: 200 }
-    );
+    return {
+      success: true,
+      message: "Seat updated successfully",
+      data: updated,
+      status: 200,
+    };
   } catch (error) {
-    return Response.json(
-      { success: false, message: error.message || "Kuch ghalat ho gaya" },
-      { status: 500 }
-    );
+    // Unique index (className + shift) conflict
+    if (error.code === 11000) {
+      return {
+        success: false,
+        message: "A record for this class and shift already exists",
+        status: 409,
+      };
+    }
+    // Invalid ObjectId format
+    if (error.name === "CastError") {
+      return { success: false, message: "Invalid ID", status: 400 };
+    }
+    return {
+      success: false,
+      message: error.message || "Something went wrong",
+      status: 500,
+    };
   }
 }
 
-export async function deleteSingleSeatConfig(req) {   // ← id parameter hatao
+// ---------- DELETE by id ----------
+export async function deleteSingleSeatConfig(req) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");   // ✅ sirf yahan se
+    const id = searchParams.get("id");
 
     if (!id) {
-      return Response.json(
-        { success: false, message: "ID required" },
-        { status: 400 }
-      );
+      return { success: false, message: "ID is required", status: 400 };
     }
 
     const config = await SeatConfig.findByIdAndDelete(id);
 
     if (!config) {
-      return Response.json(
-        { success: false, message: "Seat config nahi mila" },
-        { status: 404 }
-      );
+      return { success: false, message: "Seat config not found", status: 404 };
     }
 
-    return Response.json(
-      { success: true, message: "Seat config delete ho gaya", data: config },
-      { status: 200 }
-    );
+    return {
+      success: true,
+      message: "Seat config deleted successfully",
+      data: config,
+      status: 200,
+    };
   } catch (error) {
-    return Response.json(
-      { success: false, message: error.message || "Kuch ghalat ho gaya" },
-      { status: 500 }
-    );
+    if (error.name === "CastError") {
+      return { success: false, message: "Invalid ID", status: 400 };
+    }
+    return {
+      success: false,
+      message: error.message || "Something went wrong",
+      status: 500,
+    };
   }
 }

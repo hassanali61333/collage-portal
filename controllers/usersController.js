@@ -53,6 +53,7 @@ export const signup = async (req) => {
         name: user.name,
         email: user.email,
         role: user.role || "user",
+           isFormFill: user.isFormFill, 
       },
       status: 201,
     };
@@ -120,6 +121,7 @@ export const login = async (req) => {
         name: user.name,
         email: user.email,
         role: user.role,
+           isFormFill: user.isFormFill, 
       },
       status: 200,
     };

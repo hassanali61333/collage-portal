@@ -10,6 +10,19 @@ import {
 } from "@/app/services/service.js";
 import Sidebar from "@/app/components/sidebar.js";
 
+// ---------- react-icons ----------
+import {
+  HiOutlineSun,
+  HiOutlineMoon,
+  HiOutlineRefresh,
+  HiOutlinePlus,
+  HiOutlinePencil,
+  HiOutlineX,
+  HiOutlineCheck,
+  HiOutlineViewGrid,
+  HiOutlineExclamation,
+} from "react-icons/hi";
+
 export default function Seats() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -23,11 +36,9 @@ export default function Seats() {
     className: "",
     shift: "",
     totalSeats: "",
+    meritNo: "",
   });
 
-  // ─────────────────────────────────────────────
-  // FETCH: Admissions
-  // ─────────────────────────────────────────────
   const fetchAdmissions = useCallback(async () => {
     try {
       const response = await getAllAdmissions();
@@ -39,9 +50,6 @@ export default function Seats() {
     }
   }, []);
 
-  // ─────────────────────────────────────────────
-  // FETCH: Seat Configurations
-  // ─────────────────────────────────────────────
   const fetchSeats = useCallback(async () => {
     try {
       const response = await getSeatAvailability();
@@ -55,9 +63,6 @@ export default function Seats() {
     }
   }, []);
 
-  // ─────────────────────────────────────────────
-  // Initial Load
-  // ─────────────────────────────────────────────
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
@@ -73,9 +78,6 @@ export default function Seats() {
     setLoading(false);
   }, [fetchSeats, fetchAdmissions]);
 
-  // ─────────────────────────────────────────────
-  // ✅ Precompute admission counts once → Map: "class|shift" → count
-  // ─────────────────────────────────────────────
   const admissionCountMap = useMemo(() => {
     const map = new Map();
     for (const a of admissions) {
@@ -90,9 +92,6 @@ export default function Seats() {
     return map;
   }, [admissions]);
 
-  // ─────────────────────────────────────────────
-  // ✅ Memoize enriched seats (only recomputes when data changes)
-  // ─────────────────────────────────────────────
   const enrichedSeats = useMemo(() => {
     return seats.map((seat) => {
       const total = Number(seat.totalSeats) || 0;
@@ -105,13 +104,11 @@ export default function Seats() {
       const remaining = Math.max(total - filled, 0);
       const percent =
         total > 0 ? Math.min(Math.round((filled / total) * 100), 100) : 0;
+
       return { ...seat, total, filled, remaining, percent };
     });
   }, [seats, admissionCountMap]);
 
-  // ─────────────────────────────────────────────
-  // ✅ Memoize all aggregates in ONE pass
-  // ─────────────────────────────────────────────
   const stats = useMemo(() => {
     let totalSeatsSum = 0;
     let totalFilledSum = 0;
@@ -148,9 +145,6 @@ export default function Seats() {
   const { totalSeatsSum, totalFilledSum, totalRemainingSum, morning, evening } =
     stats;
 
-  // ─────────────────────────────────────────────
-  // Form Handlers
-  // ─────────────────────────────────────────────
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -166,12 +160,24 @@ export default function Seats() {
     } else if (Number(formData.totalSeats) <= 0) {
       newErrors.totalSeats = "Must be greater than 0";
     }
+
+    if (
+      formData.meritNo !== "" &&
+      formData.meritNo !== undefined &&
+      formData.meritNo !== null
+    ) {
+      const m = Number(formData.meritNo);
+      if (isNaN(m) || m < 0 || m > 100) {
+        newErrors.meritNo = "Merit must be between 0 and 100";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
   const resetForm = useCallback(() => {
-    setFormData({ className: "", shift: "", totalSeats: "" });
+    setFormData({ className: "", shift: "", totalSeats: "", meritNo: "" });
     setEditingId(null);
     setErrors({});
   }, []);
@@ -186,9 +192,6 @@ export default function Seats() {
     resetForm();
   }, [resetForm]);
 
-  // ─────────────────────────────────────────────
-  // ✅ Submit with optimistic updates (no full refetch)
-  // ─────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -201,10 +204,17 @@ export default function Seats() {
         totalSeats: Number(formData.totalSeats),
       };
 
+      if (
+        formData.meritNo !== "" &&
+        formData.meritNo !== undefined &&
+        formData.meritNo !== null
+      ) {
+        payload.meritNo = Number(formData.meritNo);
+      }
+
       let response;
       if (editingId) {
         response = await updateSeatConfig(payload, editingId);
-        // ✅ Update locally instead of refetch
         setSeats((prev) =>
           prev.map((s) => (s._id === editingId ? { ...s, ...payload } : s))
         );
@@ -212,10 +222,8 @@ export default function Seats() {
         response = await setSeatConfig(payload);
         const newSeat = response?.data?.data || response?.data;
         if (newSeat && newSeat._id) {
-          // ✅ Append locally instead of refetch
           setSeats((prev) => [...prev, newSeat]);
         } else {
-          // Fallback if backend doesn't return the created item
           fetchSeats();
         }
       }
@@ -227,14 +235,14 @@ export default function Seats() {
         closeModal();
       } else {
         alert(response?.data?.message || "Something went wrong!");
-        fetchSeats(); // rollback
+        fetchSeats();
       }
     } catch (error) {
       alert(
         error.response?.data?.message ||
           `Error ${editingId ? "updating" : "creating"} seat configuration.`
       );
-      fetchSeats(); // rollback
+      fetchSeats();
     } finally {
       setSubmitting(false);
     }
@@ -246,20 +254,17 @@ export default function Seats() {
       className: seat.className || "",
       shift: seat.shift || "",
       totalSeats: seat.totalSeats ?? "",
+      meritNo: seat.meritNo ?? "",
     });
     setErrors({});
     setShowModal(true);
   }, []);
 
-  // ─────────────────────────────────────────────
-  // ✅ Delete with optimistic removal
-  // ─────────────────────────────────────────────
   const handleDelete = useCallback(
     async (id) => {
       if (!confirm("Are you sure you want to delete this seat configuration?"))
         return;
 
-      // Optimistic removal
       let prevSeats;
       setSeats((prev) => {
         prevSeats = prev;
@@ -270,7 +275,7 @@ export default function Seats() {
         const response = await deleteSeatConfig(id);
         if ((response?.status ?? 200) >= 400) {
           alert(response?.data?.message || "Failed to delete.");
-          setSeats(prevSeats); // rollback
+          setSeats(prevSeats);
         } else if (editingId === id) {
           resetForm();
         }
@@ -279,7 +284,7 @@ export default function Seats() {
           error.response?.data?.message ||
             "Error deleting seat configuration. Please try again."
         );
-        setSeats(prevSeats); // rollback
+        setSeats(prevSeats);
       }
     },
     [editingId, resetForm]
@@ -287,178 +292,103 @@ export default function Seats() {
 
   const getShiftBadge = useCallback((shift) => {
     return shift === "morning"
-      ? "bg-amber-50 text-amber-700"
-      : "bg-indigo-50 text-indigo-700";
+      ? "bg-orange-50 text-orange-700 border-orange-100"
+      : "bg-neutral-100 text-neutral-700 border-neutral-200";
   }, []);
 
-  // ─────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Sidebar */}
+    <div className="flex flex-col md:flex-row min-h-screen bg-neutral-50">
       <div className="w-full md:w-[210px] md:min-w-[210px] flex-shrink-0">
         <Sidebar />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
-        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto w-full max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-6 md:mb-8">
-            <div className="flex justify-center items-center gap-3 mb-3">
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-black rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-white bg-black text-xl md:text-2xl font-bold">
-                  A
-                </span>
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10">
+
+          {/* ---------- HEADER (subtle orange accent) ---------- */}
+          <div className="relative bg-white rounded-2xl mb-6 md:mb-8 border border-neutral-200 border-l-4 border-l-orange-500 overflow-hidden">
+            <div className="px-6 py-7 md:px-8 md:py-8 flex items-center gap-4">
+              <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center flex-shrink-0 border border-orange-100">
+                <HiOutlineViewGrid className="w-6 h-6 text-orange-600" />
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-                AMC College
-              </h1>
+              <div>
+                <h1 className="text-xl md:text-2xl font-semibold text-black tracking-tight">
+                  Seat Configuration
+                </h1>
+                <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                  Manage class-wise seat allocations per shift
+                </p>
+              </div>
             </div>
-            <p className="text-sm md:text-base text-gray-600">
-              Seat Configuration Management
-            </p>
-            <div className="w-16 md:w-20 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 mx-auto mt-2 rounded-full"></div>
           </div>
 
-          {/* Overall Stats */}
+          {/* ---------- OVERALL STATS ---------- */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4">
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-blue-600">
-              <p className="text-xs text-gray-500 font-medium">Total Seats</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
-                {totalSeatsSum}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-green-600">
-              <p className="text-xs text-gray-500 font-medium">Filled Seats</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
-                {totalFilledSum}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-indigo-600">
-              <p className="text-xs text-gray-500 font-medium">
-                Remaining Seats
-              </p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
-                {totalRemainingSum}
-              </p>
-            </div>
+            <StatBox label="Total Seats" value={totalSeatsSum} accent="orange" />
+            <StatBox label="Filled Seats" value={totalFilledSum} accent="neutral" />
+            <StatBox
+              label="Remaining Seats"
+              value={totalRemainingSum}
+              accent="orange"
+            />
           </div>
 
-          {/* Shift-wise Breakdown */}
+          {/* ---------- SHIFT BREAKDOWN ---------- */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6">
-            {/* Morning Card */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border-t-4 border-amber-500">
-              <div className="px-4 py-3 flex items-center justify-between bg-amber-50/50">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-                    <svg
-                      className="w-4 h-4 text-amber-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                      ></path>
-                    </svg>
+            {/* Morning */}
+            <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden border-t-4 border-t-orange-500">
+              <div className="px-5 py-4 flex items-center justify-between border-b border-neutral-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center">
+                    <HiOutlineSun className="w-4 h-4 text-orange-600" />
                   </div>
-                  <h3 className="text-sm md:text-base font-semibold text-gray-800">
+                  <h3 className="text-sm md:text-base font-semibold text-black">
                     Morning Shift
                   </h3>
                 </div>
-                <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[11px] text-orange-700 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-full font-semibold">
                   {morning.count} config(s)
                 </span>
               </div>
-              <div className="grid grid-cols-3 divide-x divide-gray-100">
-                <div className="p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-500 font-medium">Total</p>
-                  <p className="text-lg md:text-xl font-bold text-gray-800 mt-1">
-                    {morning.total}
-                  </p>
-                </div>
-                <div className="p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-500 font-medium">Filled</p>
-                  <p className="text-lg md:text-xl font-bold text-green-600 mt-1">
-                    {morning.filled}
-                  </p>
-                </div>
-                <div className="p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-500 font-medium">
-                    Remaining
-                  </p>
-                  <p className="text-lg md:text-xl font-bold text-indigo-600 mt-1">
-                    {morning.remaining}
-                  </p>
-                </div>
+              <div className="grid grid-cols-3 divide-x divide-neutral-100">
+                <ShiftCell label="Total" value={morning.total} />
+                <ShiftCell label="Filled" value={morning.filled} highlight />
+                <ShiftCell label="Remaining" value={morning.remaining} />
               </div>
             </div>
 
-            {/* Evening Card */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border-t-4 border-indigo-500">
-              <div className="px-4 py-3 flex items-center justify-between bg-indigo-50/50">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                    <svg
-                      className="w-4 h-4 text-indigo-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                      ></path>
-                    </svg>
+            {/* Evening */}
+            <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden border-t-4 border-t-neutral-800">
+              <div className="px-5 py-4 flex items-center justify-between border-b border-neutral-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-neutral-100 border border-neutral-200 flex items-center justify-center">
+                    <HiOutlineMoon className="w-4 h-4 text-neutral-700" />
                   </div>
-                  <h3 className="text-sm md:text-base font-semibold text-gray-800">
+                  <h3 className="text-sm md:text-base font-semibold text-black">
                     Evening Shift
                   </h3>
                 </div>
-                <span className="text-xs text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[11px] text-neutral-700 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-full font-semibold">
                   {evening.count} config(s)
                 </span>
               </div>
-              <div className="grid grid-cols-3 divide-x divide-gray-100">
-                <div className="p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-500 font-medium">Total</p>
-                  <p className="text-lg md:text-xl font-bold text-gray-800 mt-1">
-                    {evening.total}
-                  </p>
-                </div>
-                <div className="p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-500 font-medium">Filled</p>
-                  <p className="text-lg md:text-xl font-bold text-green-600 mt-1">
-                    {evening.filled}
-                  </p>
-                </div>
-                <div className="p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-500 font-medium">
-                    Remaining
-                  </p>
-                  <p className="text-lg md:text-xl font-bold text-indigo-600 mt-1">
-                    {evening.remaining}
-                  </p>
-                </div>
+              <div className="grid grid-cols-3 divide-x divide-neutral-100">
+                <ShiftCell label="Total" value={evening.total} />
+                <ShiftCell label="Filled" value={evening.filled} highlight />
+                <ShiftCell label="Remaining" value={evening.remaining} />
               </div>
             </div>
           </div>
 
-          {/* List Card */}
-          <div className="bg-white rounded-xl md:rounded-2xl shadow-xl md:shadow-2xl overflow-hidden">
-            <div className="bg-[#0a0e0d] px-4 md:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* ---------- LIST ---------- */}
+          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm">
+            <div className="bg-neutral-900 px-5 md:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h2 className="text-white text-base md:text-lg font-semibold">
+                <h2 className="text-white text-base md:text-lg font-semibold tracking-tight">
                   Seat Configurations
                 </h2>
-                <p className="text-blue-100 text-xs">
+                <p className="text-white/60 text-xs mt-0.5">
                   Total: {enrichedSeats.length} configuration(s)
                 </p>
               </div>
@@ -466,41 +396,17 @@ export default function Seats() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={refreshAll}
-                  className="px-3 md:px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs md:text-sm font-semibold rounded-lg transition-all flex items-center gap-1.5"
+                  className="px-3 md:px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs md:text-sm font-semibold rounded-lg transition-all flex items-center gap-1.5"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    ></path>
-                  </svg>
+                  <HiOutlineRefresh className="w-3.5 h-3.5" />
                   Refresh
                 </button>
 
                 <button
                   onClick={openAddModal}
-                  className="px-3 md:px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs md:text-sm font-semibold rounded-lg transition-all shadow-md flex items-center gap-1.5"
+                  className="px-3 md:px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs md:text-sm font-semibold rounded-lg transition-all shadow-sm flex items-center gap-1.5"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 4v16m8-8H4"
-                    ></path>
-                  </svg>
+                  <HiOutlinePlus className="w-3.5 h-3.5" />
                   Add Seat
                 </button>
               </div>
@@ -509,51 +415,23 @@ export default function Seats() {
             <div className="p-4 md:p-6">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <svg
-                    className="animate-spin h-8 w-8 text-blue-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <p className="mt-3 text-sm text-gray-500">
-                    Loading configurations...
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full border-2 border-neutral-200" />
+                    <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-transparent border-t-orange-500 animate-spin" />
+                  </div>
+                  <p className="mt-3 text-xs text-neutral-500 font-medium">
+                    Loading configurations
                   </p>
                 </div>
               ) : enrichedSeats.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg
-                      className="w-8 h-8 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                      ></path>
-                    </svg>
+                  <div className="w-16 h-16 bg-orange-50 border border-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <HiOutlineViewGrid className="w-8 h-8 text-orange-500" />
                   </div>
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-black text-sm font-semibold">
                     No seat configurations yet
                   </p>
-                  <p className="text-gray-400 text-xs mt-1">
+                  <p className="text-neutral-500 text-xs mt-1">
                     Click "Add Seat" to create your first configuration
                   </p>
                 </div>
@@ -562,113 +440,113 @@ export default function Seats() {
                   <div className="inline-block min-w-full align-middle">
                     <table className="min-w-full">
                       <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <tr className="border-b border-neutral-200">
+                          <th className="px-3 md:px-4 py-3 text-left text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
                             Class
                           </th>
-                          <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          <th className="px-3 md:px-4 py-3 text-left text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
                             Shift
                           </th>
-                          <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          <th className="px-3 md:px-4 py-3 text-left text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
                             Total
                           </th>
-                          <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          <th className="px-3 md:px-4 py-3 text-left text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
                             Filled
                           </th>
-                          <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          <th className="px-3 md:px-4 py-3 text-left text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
                             Remaining
                           </th>
-                          <th className="px-3 md:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          <th className="px-3 md:px-4 py-3 text-left text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+                            Merit
+                          </th>
+                          <th className="px-3 md:px-4 py-3 text-left text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
                             Occupancy
                           </th>
-                          <th className="px-3 md:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          <th className="px-3 md:px-4 py-3 text-right text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-neutral-100">
                         {enrichedSeats.map((seat) => {
                           const { total, filled, remaining, percent } = seat;
 
                           return (
                             <tr
                               key={seat._id}
-                              className="hover:bg-blue-50/50 transition-colors"
+                              className="hover:bg-orange-50/40 transition-colors"
                             >
-                              <td className="px-3 md:px-4 py-3 whitespace-nowrap">
-                                <span className="text-sm font-medium text-gray-800">
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap">
+                                <span className="text-sm font-semibold text-black">
                                   {seat.className}
                                 </span>
                               </td>
-                              <td className="px-3 md:px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap">
                                 <span
-                                  className={`text-xs px-2 py-1 rounded-full capitalize ${getShiftBadge(
+                                  className={`text-[11px] px-2.5 py-1 rounded-full capitalize font-semibold border ${getShiftBadge(
                                     seat.shift
                                   )}`}
                                 >
                                   {seat.shift}
                                 </span>
                               </td>
-                              <td className="px-3 md:px-4 py-3 whitespace-nowrap">
-                                <span className="text-sm font-semibold text-gray-800">
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap">
+                                <span className="text-sm font-semibold text-black">
                                   {total}
                                 </span>
                               </td>
-                              <td className="px-3 md:px-4 py-3 whitespace-nowrap">
-                                <span className="text-sm font-semibold text-green-600">
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap">
+                                <span className="text-sm font-semibold text-orange-600">
                                   {filled}
                                 </span>
                               </td>
-                              <td className="px-3 md:px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap">
                                 <span
                                   className={`text-sm font-semibold ${
                                     remaining > 0
-                                      ? "text-indigo-600"
-                                      : "text-red-600"
+                                      ? "text-black"
+                                      : "text-neutral-400"
                                   }`}
                                 >
                                   {remaining}
                                 </span>
                               </td>
-                              <td className="px-3 md:px-4 py-3 whitespace-nowrap min-w-[140px]">
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap">
+                                <span className="text-sm font-medium text-neutral-700">
+                                  {seat.meritNo !== null &&
+                                  seat.meritNo !== undefined
+                                    ? seat.meritNo
+                                    : "—"}
+                                  %
+                                </span>
+                              </td>
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap min-w-[140px]">
                                 <div className="flex items-center gap-2">
-                                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
                                     <div
-                                      className={`h-full rounded-full transition-all ${
+                                      className={`h-full rounded-full transition-all duration-500 ${
                                         percent >= 90
-                                          ? "bg-red-500"
+                                          ? "bg-neutral-900"
                                           : percent >= 70
-                                          ? "bg-amber-500"
-                                          : "bg-gradient-to-r from-blue-600 to-indigo-600"
+                                          ? "bg-orange-600"
+                                          : "bg-orange-400"
                                       }`}
                                       style={{ width: `${percent}%` }}
                                     ></div>
                                   </div>
-                                  <span className="text-xs text-gray-600 font-medium w-10 text-right">
+                                  <span className="text-xs text-neutral-600 font-medium w-10 text-right tabular-nums">
                                     {percent}%
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-3 md:px-4 py-3 whitespace-nowrap text-right">
+                              <td className="px-3 md:px-4 py-3.5 whitespace-nowrap text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
                                     onClick={() => handleEdit(seat)}
-                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                    className="p-1.5 text-orange-600 hover:bg-orange-600 hover:text-white rounded-lg transition-all duration-200"
                                     title="Edit"
                                   >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                      ></path>
-                                    </svg>
+                                    <HiOutlinePencil className="w-4 h-4" />
                                   </button>
                                 </div>
                               </td>
@@ -683,199 +561,193 @@ export default function Seats() {
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="text-center mt-6 text-gray-500 text-xs">
-            <p>© 2026 AMC College. All rights reserved.</p>
+          <div className="text-center mt-10">
+            <p className="text-xs text-neutral-400 font-medium">
+              © 2026 AMC College
+            </p>
           </div>
         </div>
       </div>
 
-      {/* MODAL POPUP */}
+      {/* ---------- MODAL ---------- */}
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div
-            className="bg-white rounded-xl md:rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-neutral-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="bg-[#0a0e0d] px-4 md:px-6 py-3 flex items-center justify-between">
-              <div>
-                <h2 className="text-white text-base md:text-lg font-semibold">
-                  {editingId
-                    ? "Edit Seat Configuration"
-                    : "Add Seat Configuration"}
-                </h2>
-                <p className="text-blue-100 text-xs">
-                  {editingId
-                    ? "Update the seat allocation details below"
-                    : "Configure total seats per class and shift"}
-                </p>
+            {/* Header */}
+            <div className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center">
+                  {editingId ? (
+                    <HiOutlinePencil className="w-4 h-4 text-orange-600" />
+                  ) : (
+                    <HiOutlinePlus className="w-4 h-4 text-orange-600" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-black text-sm md:text-base font-semibold tracking-tight">
+                    {editingId
+                      ? "Edit Seat Configuration"
+                      : "Add Seat Configuration"}
+                  </h2>
+                  <p className="text-neutral-500 text-[11px]">
+                    {editingId
+                      ? "Update the seat allocation details"
+                      : "Configure total seats per class and shift"}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="p-1.5 text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition"
+                className="text-neutral-400 hover:text-black hover:bg-neutral-100 transition-all p-1.5 rounded-lg"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  ></path>
-                </svg>
+                <HiOutlineX className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <form onSubmit={handleSubmit} className="p-4 md:p-6">
-              <div className="mb-4">
-                <h3 className="text-sm md:text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <span className="w-1 h-5 bg-blue-600 rounded-full"></span>
-                  Seat Allocation Details
-                </h3>
-                <div className="space-y-3 md:space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Class <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="className"
-                      value={formData.className}
-                      onChange={handleChange}
-                      className={`w-full px-3 py-2 border ${
-                        errors.className ? "border-red-500" : "border-gray-300"
-                      } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm text-black`}
-                    >
-                      <option value="">Select Class</option>
-                      <option value="Class 11">Class 11</option>
-                      <option value="Class 12">Class 12</option>
-                    </select>
-                    {errors.className && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.className}
-                      </p>
-                    )}
-                  </div>
+            {/* Body */}
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="space-y-4">
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Shift <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="shift"
-                      value={formData.shift}
-                      onChange={handleChange}
-                      className={`w-full px-3 py-2 border ${
-                        errors.shift ? "border-red-500" : "border-gray-300"
-                      } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm text-black`}
-                    >
-                      <option value="">Select Shift</option>
-                      <option value="morning">Morning</option>
-                      <option value="evening">Evening</option>
-                    </select>
-                    {errors.shift && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.shift}
-                      </p>
-                    )}
-                  </div>
+                <FieldWrap label="Class" required>
+                  <select
+                    name="className"
+                    value={formData.className}
+                    onChange={handleChange}
+                    className={`w-full px-3.5 py-2.5 bg-neutral-50 border ${
+                      errors.className
+                        ? "border-neutral-900"
+                        : "border-neutral-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    } rounded-lg text-sm text-black font-medium focus:outline-none focus:bg-white transition-all`}
+                  >
+                    <option value="">Select Class</option>
+                    <option value="Class 11">Class 11</option>
+                    <option value="Class 12">Class 12</option>
+                  </select>
+                  {errors.className && (
+                    <p className="text-black text-[11px] mt-1.5 font-semibold flex items-center gap-1">
+                      <HiOutlineExclamation className="w-3 h-3" />
+                      {errors.className}
+                    </p>
+                  )}
+                </FieldWrap>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Total Seats <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      name="totalSeats"
-                      min="1"
-                      value={formData.totalSeats}
-                      onChange={handleChange}
-                      placeholder="e.g., 50"
-                      className={`w-full px-3 py-2 border ${
-                        errors.totalSeats ? "border-red-500" : "border-gray-300"
-                      } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm text-black`}
-                    />
-                    {errors.totalSeats && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.totalSeats}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                <FieldWrap label="Shift" required>
+                  <select
+                    name="shift"
+                    value={formData.shift}
+                    onChange={handleChange}
+                    className={`w-full px-3.5 py-2.5 bg-neutral-50 border ${
+                      errors.shift
+                        ? "border-neutral-900"
+                        : "border-neutral-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    } rounded-lg text-sm text-black font-medium focus:outline-none focus:bg-white transition-all capitalize`}
+                  >
+                    <option value="">Select Shift</option>
+                    <option value="morning">Morning</option>
+                    <option value="evening">Evening</option>
+                  </select>
+                  {errors.shift && (
+                    <p className="text-black text-[11px] mt-1.5 font-semibold flex items-center gap-1">
+                      <HiOutlineExclamation className="w-3 h-3" />
+                      {errors.shift}
+                    </p>
+                  )}
+                </FieldWrap>
+
+                <FieldWrap label="Total Seats" required>
+                  <input
+                    type="number"
+                    name="totalSeats"
+                    min="1"
+                    value={formData.totalSeats}
+                    onChange={handleChange}
+                    placeholder="e.g., 50"
+                    className={`w-full px-3.5 py-2.5 bg-neutral-50 border ${
+                      errors.totalSeats
+                        ? "border-neutral-900"
+                        : "border-neutral-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    } rounded-lg text-sm text-black font-medium focus:outline-none focus:bg-white transition-all`}
+                  />
+                  {errors.totalSeats && (
+                    <p className="text-black text-[11px] mt-1.5 font-semibold flex items-center gap-1">
+                      <HiOutlineExclamation className="w-3 h-3" />
+                      {errors.totalSeats}
+                    </p>
+                  )}
+                </FieldWrap>
+
+                <FieldWrap
+                  label="Merit No"
+                  hint="optional, 0–100"
+                >
+                  <input
+                    type="number"
+                    name="meritNo"
+                    min="0"
+                    max="100"
+                    value={formData.meritNo}
+                    onChange={handleChange}
+                    placeholder="e.g., 75"
+                    className={`w-full px-3.5 py-2.5 bg-neutral-50 border ${
+                      errors.meritNo
+                        ? "border-neutral-900"
+                        : "border-neutral-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                    } rounded-lg text-sm text-black font-medium focus:outline-none focus:bg-white transition-all`}
+                  />
+                  {errors.meritNo && (
+                    <p className="text-black text-[11px] mt-1.5 font-semibold flex items-center gap-1">
+                      <HiOutlineExclamation className="w-3 h-3" />
+                      {errors.meritNo}
+                    </p>
+                  )}
+                </FieldWrap>
               </div>
 
-              {/* Modal Footer */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center pt-4 border-t">
-                <div className="text-xs text-gray-500">
-                  <span className="text-red-500">*</span> Required fields
+              {/* Footer */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center pt-5 mt-5 border-t border-neutral-100">
+                <div className="text-[11px] text-neutral-500 font-medium">
+                  <span className="text-orange-600 font-bold">*</span> Required
+                  fields
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="flex-1 sm:flex-none px-4 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition text-sm"
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-black font-semibold rounded-lg transition-all text-sm"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 sm:flex-none px-4 md:px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                    className="flex-1 sm:flex-none px-5 md:px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm shadow-sm"
                   >
                     {submitting ? (
                       <>
-                        <svg
-                          className="animate-spin h-4 w-4 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
+                        <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         {editingId ? "Updating..." : "Saving..."}
                       </>
                     ) : (
                       <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d={
-                              editingId
-                                ? "M5 13l4 4L19 7"
-                                : "M12 4v16m8-8H4"
-                            }
-                          ></path>
-                        </svg>
-                        {editingId ? "Update" : "Save"}
+                        {editingId ? (
+                          <>
+                            <HiOutlineCheck className="w-4 h-4" />
+                            Update
+                          </>
+                        ) : (
+                          <>
+                            <HiOutlinePlus className="w-4 h-4" />
+                            Save
+                          </>
+                        )}
                       </>
                     )}
                   </button>
@@ -885,6 +757,63 @@ export default function Seats() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- Sub components ---------- */
+
+function StatBox({ label, value, accent = "orange" }) {
+  const isOrange = accent === "orange";
+  return (
+    <div
+      className={`bg-white rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-1 ${
+        isOrange
+          ? "border-neutral-200 border-l-4 border-l-orange-500"
+          : "border-neutral-200"
+      }`}
+    >
+      <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="text-2xl font-bold text-black mt-1.5 tabular-nums">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ShiftCell({ label, value, highlight = false }) {
+  return (
+    <div className="p-3 md:p-4 text-center">
+      <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">
+        {label}
+      </p>
+      <p
+        className={`text-lg md:text-xl font-bold mt-1 tabular-nums ${
+          highlight ? "text-orange-600" : "text-black"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function FieldWrap({ label, hint, required, children }) {
+  return (
+    <div>
+      <label className="flex items-center justify-between mb-1.5">
+        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">
+          {label} {required && <span className="text-orange-600">*</span>}
+        </span>
+        {hint && (
+          <span className="text-[10px] text-neutral-400 font-medium">
+            {hint}
+          </span>
+        )}
+      </label>
+      {children}
     </div>
   );
 }
