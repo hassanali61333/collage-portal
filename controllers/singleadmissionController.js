@@ -17,7 +17,7 @@ export async function getadmissionbyid(params) {
     }
 
     const found = await AdmissionModel.findOne({studentId:studentId});
-
+console.log("found", found);
     if (found === null) {
       return {
         success: false,
