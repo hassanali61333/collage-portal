@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import User from "../models/usersModel.js";
 import connectDB from "../lib/db.js";
 import { cookies } from "next/headers";
@@ -8,13 +9,8 @@ export const signup = async (req) => {
 
     const { name, email, password } = await req.json();
 
-    // Validation
     if (!name || !email || !password) {
-      return {
-        success: false,
-        message: "All fields are required",
-        status: 400,
-      };
+      return { success: false, message: "All fields are required", status: 400 };
     }
 
     if (password.length < 6) {
@@ -25,7 +21,6 @@ export const signup = async (req) => {
       };
     }
 
-    // Check existing user
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -36,11 +31,13 @@ export const signup = async (req) => {
       };
     }
 
-    // Create user
+    // Password hash karein
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await User.create({
       name,
       email,
-      password,
+      password: hashedPassword,
     });
 
     return {
@@ -69,38 +66,34 @@ export const login = async (req) => {
   try {
     await connectDB();
 
-    // GET query se email/password nikalein
     const { searchParams } = new URL(req.url);
-
     const email = searchParams.get("email");
     const password = searchParams.get("password");
 
-    console.log({ email, password });
-
     if (!email || !password) {
-      return {
-        success: false,
-        message: "All fields are required",
-        status: 400,
-      };
+      return { success: false, message: "All fields are required", status: 400 };
     }
 
     const user = await User.findOne({ email });
 
     if (!user) {
-      return {
-        success: false,
-        message: "Invalid email or password",
-        status: 401,
-      };
+      return { success: false, message: "Invalid email or password", status: 401 };
     }
 
-    if (user.password !== password) {
-      return {
-        success: false,
-        message: "Invalid email or password",
-        status: 401,
-      };
+    let isMatch = false;
+
+    if (user.password.startsWith("$2")) {
+      // Naya user: password hashed hai
+      isMatch = await bcrypt.compare(password, user.password);
+    } else if (user.password === password) {
+      // Purana user: password plain text tha, ab hash karke save kar do
+      isMatch = true;
+      const hashed = await bcrypt.hash(password, 10);
+      await User.updateOne({ _id: user._id }, { password: hashed });
+    }
+
+    if (!isMatch) {
+      return { success: false, message: "Invalid email or password", status: 401 };
     }
 
     const cookieStore = await cookies();
@@ -124,11 +117,6 @@ export const login = async (req) => {
     };
   } catch (error) {
     console.error("Login Error:", error);
-
-    return {
-      success: false,
-      message: "Server error",
-      status: 500,
-    };
+    return { success: false, message: "Server error", status: 500 };
   }
 };
