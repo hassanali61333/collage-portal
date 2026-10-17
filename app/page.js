@@ -20,10 +20,22 @@ import {
   HiOutlineTrendingUp,
 } from "react-icons/hi";
 
+// Small grey pulsing bar shown only where API data is still loading
+function Skeleton({ className = "" }) {
+  return (
+    <span
+      className={`inline-block bg-white/10 rounded animate-pulse align-middle ${className}`}
+    />
+  );
+}
+
 export default function SchoolProfilePage() {
   const [seats, setSeats] = useState([]);
   const [settings, setSettings] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  // Two separate loading states (no full-page spinner)
+  const [seatsLoading, setSeatsLoading] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const [error, setError] = useState("");
 
   const router = useRouter();
@@ -38,7 +50,7 @@ export default function SchoolProfilePage() {
       } catch (err) {
         console.error("Failed to load seats:", err);
       } finally {
-        setLoading(false);
+        setSeatsLoading(false);
       }
     };
     load();
@@ -55,7 +67,7 @@ export default function SchoolProfilePage() {
         console.error("Failed to load admission settings:", err);
         setError("Failed to load admission settings");
       } finally {
-        setLoading(false);
+        setSettingsLoading(false);
       }
     };
     loadSettings();
@@ -129,21 +141,8 @@ export default function SchoolProfilePage() {
 
   const formatNum = (n) => n.toLocaleString("en-US");
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full border-2 border-white/10" />
-            <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-transparent border-t-emerald-400 animate-spin" />
-          </div>
-          <p className="text-[10px] text-neutral-500 font-semibold tracking-[0.3em] uppercase">
-            Loading
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // NOTE: no `if (loading) return <Spinner/>` here.
+  // The page renders immediately; only the API-driven numbers wait.
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -186,7 +185,6 @@ export default function SchoolProfilePage() {
 
       {/* ---------- MAIN ---------- */}
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-10 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
-
         {/* Left — School Info */}
         <div>
           <button
@@ -257,7 +255,6 @@ export default function SchoolProfilePage() {
 
         {/* Right — Seats Card */}
         <div className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden hover:border-white/20 transition-all duration-500 shadow-2xl shadow-black/50">
-
           {/* Hero number */}
           <div className="relative p-6 md:p-8 text-center border-b border-white/10">
             {/* soft glow */}
@@ -266,10 +263,20 @@ export default function SchoolProfilePage() {
               Seats Available
             </p>
             <p className="relative text-6xl md:text-7xl font-black text-white tabular-nums leading-none tracking-tighter">
-              {formatNum(stats.remaining)}
+              {seatsLoading ? (
+                <Skeleton className="w-28 h-14 md:h-16" />
+              ) : (
+                formatNum(stats.remaining)
+              )}
             </p>
             <p className="relative text-xs text-neutral-400 mt-3 font-medium">
-              of {formatNum(stats.totalSeats)} total seats
+              of{" "}
+              {seatsLoading ? (
+                <Skeleton className="w-8 h-3" />
+              ) : (
+                formatNum(stats.totalSeats)
+              )}{" "}
+              total seats
             </p>
           </div>
 
@@ -283,10 +290,20 @@ export default function SchoolProfilePage() {
                 </p>
               </div>
               <p className="text-3xl font-black text-white tabular-nums leading-none">
-                {formatNum(stats.morning.remaining)}
+                {seatsLoading ? (
+                  <Skeleton className="w-12 h-8" />
+                ) : (
+                  formatNum(stats.morning.remaining)
+                )}
               </p>
               <p className="text-[10px] text-neutral-400 mt-1.5 font-medium">
-                / {formatNum(stats.morning.total)} total
+                /{" "}
+                {seatsLoading ? (
+                  <Skeleton className="w-6 h-2.5" />
+                ) : (
+                  formatNum(stats.morning.total)
+                )}{" "}
+                total
               </p>
             </div>
 
@@ -298,10 +315,20 @@ export default function SchoolProfilePage() {
                 </p>
               </div>
               <p className="text-3xl font-black text-white tabular-nums leading-none">
-                {formatNum(stats.evening.remaining)}
+                {seatsLoading ? (
+                  <Skeleton className="w-12 h-8" />
+                ) : (
+                  formatNum(stats.evening.remaining)
+                )}
               </p>
               <p className="text-[10px] text-neutral-400 mt-1.5 font-medium">
-                / {formatNum(stats.evening.total)} total
+                /{" "}
+                {seatsLoading ? (
+                  <Skeleton className="w-6 h-2.5" />
+                ) : (
+                  formatNum(stats.evening.total)
+                )}{" "}
+                total
               </p>
             </div>
           </div>
@@ -313,13 +340,13 @@ export default function SchoolProfilePage() {
                 Occupancy
               </p>
               <p className="text-[11px] font-bold text-emerald-400 tabular-nums">
-                {stats.percentFilled}%
+                {seatsLoading ? "—" : `${stats.percentFilled}%`}
               </p>
             </div>
             <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-emerald-500/30"
-                style={{ width: `${stats.percentFilled}%` }}
+                style={{ width: seatsLoading ? "0%" : `${stats.percentFilled}%` }}
               />
             </div>
           </div>
@@ -333,7 +360,11 @@ export default function SchoolProfilePage() {
               </span>
             </div>
             <span className="text-sm font-bold text-white tabular-nums">
-              {formatOpenUntil(admissionOpenUntil)}
+              {settingsLoading ? (
+                <Skeleton className="w-20 h-4" />
+              ) : (
+                formatOpenUntil(admissionOpenUntil)
+              )}
             </span>
           </div>
         </div>
