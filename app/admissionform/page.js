@@ -41,7 +41,7 @@ console.log("myid")
     fatherCnic: "",
     fatherContact: "",
     shift: "",
-    picture: null,
+    pictureBase64: ""
   });
 
 
@@ -63,18 +63,26 @@ console.log("myid")
     }
   };
 
-  const handleFileChange = (e) => {
+const handleFileChange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Check file size (max 2MB) - taake server crash na ho
+  if (file.size > 2 * 1024 * 1024) {
+    setErrors((prev) => ({ ...prev, picture: "Image must be less than 2MB" }));
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
     setFormData((prev) => ({
       ...prev,
-      picture: e.target.files[0],
+      pictureBase64: reader.result, // 👈 Base64 string save hogi
     }));
-    if (errors.picture) {
-      setErrors((prev) => ({
-        ...prev,
-        picture: "",
-      }));
-    }
+    setErrors((prev) => ({ ...prev, picture: "" })); // Error clear
   };
+  reader.readAsDataURL(file);
+};
 
   const validateForm = () => {
     const newErrors = {};
@@ -92,37 +100,46 @@ console.log("myid")
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!validateForm()) {
-      return;
+  if (!validateForm()) return;
+
+  setLoading(true);
+
+  try {
+    // Direct JSON object banayein
+    const submitData = {
+      studentId: formData.studentId,
+      name: formData.name,
+      dateOfBirth: formData.dateOfBirth,
+      cnicNo: formData.cnicNo,
+      contactNo: formData.contactNo,
+      classInAdmission: formData.classInAdmission,
+      numberInLastClass: formData.numberInLastClass,
+      rollNoOfLastClass: formData.rollNoOfLastClass,
+      boardOfLastClass: formData.boardOfLastClass,
+      fatherName: formData.fatherName,
+      fatherCnic: formData.fatherCnic,
+      fatherContact: formData.fatherContact,
+      shift: formData.shift,
+      picture: formData.pictureBase64, // 👈 Base64 string bhej rahe hain
+    };
+
+    const response = await createAdmission(submitData);
+
+    if (response.data.success) {
+      alert("Admission application submitted successfully!");
+      router.push("/dashboard");
+    } else {
+      alert(response.data.message || "Something went wrong!");
     }
-
-    setLoading(true);
-
-    try {
-      const submitData = new FormData();
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== null && formData[key] !== undefined) {
-          submitData.append(key, formData[key]);
-        }
-      });
-
-      const response = await createAdmission(submitData);
-
-      if (response.data.success) {
-        alert("Admission application submitted successfully!");
-        router.push("/dashboard");
-      } else {
-        alert(response.data.message || "Something went wrong!");
-      }
-    } catch (error) {
-      alert(error.response?.data?.message || "Error submitting form. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    alert(error.response?.data?.message || "Error submitting form. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
   if (stuid && formData.studentId !== stuid) {

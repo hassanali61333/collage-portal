@@ -34,40 +34,21 @@ export async function getAllAdmissions() {
 // POST - Create admission (with picture + shift support)
 // ============================================
 
-export async function createAdmission(req) {
+
+export async function createAdmission(body) {
   try {
     await connectDB();
 
-    const formData = await req.formData();
+    // 1. Ab req.formData() nahi, seedha JSON body se data uthayenge
+    const { 
+      studentId, name, dateOfBirth, cnicNo, contactNo, 
+      classInAdmission, numberInLastClass, rollNoOfLastClass, 
+      boardOfLastClass, fatherName, fatherCnic, fatherContact, 
+      shift, picture // 👈 Yahan aapki Base64 image aayegi
+    } = body;
 
-    // Convert formData entries into a plain object (skip picture)
-    const admissionData = {};
-    for (const [key, value] of formData.entries()) {
-      if (key !== "picture") {
-        admissionData[key] = value;
-      }
-    }
-
-    // Handle picture upload
-    const pictureFile = formData.get("picture");
-    if (pictureFile && typeof pictureFile === "object" && pictureFile.size > 0) {
-      const bytes = await pictureFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
-      await mkdir(uploadDir, { recursive: true });
-
-      const fileName = `${Date.now()}-${pictureFile.name}`;
-      const filePath = path.join(uploadDir, fileName);
-      await writeFile(filePath, buffer);
-
-      admissionData.picture = `/uploads/${fileName}`;
-    }
-
-    // Check if CNIC already exists
-    const existingAdmission = await AdmissionModel.findOne({
-      cnicNo: admissionData.cnicNo,
-    });
+    // 2. Check if CNIC already exists
+    const existingAdmission = await AdmissionModel.findOne({ cnicNo });
 
     if (existingAdmission) {
       return {
@@ -78,12 +59,27 @@ export async function createAdmission(req) {
       };
     }
 
-    // Create admission
-    const admission = await AdmissionModel.create(admissionData);
+    // 3. Create admission (Picture direct Base64 string ki tarah save hogi)
+    const admission = await AdmissionModel.create({
+      studentId,
+      name,
+      dateOfBirth,
+      cnicNo,
+      contactNo,
+      classInAdmission,
+      numberInLastClass,
+      rollNoOfLastClass,
+      boardOfLastClass,
+      fatherName,
+      fatherCnic,
+      fatherContact,
+      shift,
+      picture, // 👈 Base64 image database mein save ho rahi hai
+    });
 
-    // ✅ Mark user form as filled
-    if (admissionData.studentId) {
-      await User.findByIdAndUpdate(admissionData.studentId, {
+    // 4. Mark user form as filled
+    if (studentId) {
+      await User.findByIdAndUpdate(studentId, {
         isFormFill: true,
       });
     }
@@ -94,7 +90,9 @@ export async function createAdmission(req) {
       data: admission,
       status: 201,
     };
+
   } catch (error) {
+    console.error("Admission Error:", error);
     return {
       success: false,
       message: error.message,

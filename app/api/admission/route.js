@@ -28,21 +28,40 @@ export async function GET() {
 // ============================================
 // POST - Create new admission
 // ============================================
+
+
 export async function POST(req) {
-  const result = await createAdmission(req);
+  try {
+    // 1. Request se JSON data nikaalein
+    const body = await req.json();
 
-  return NextResponse.json(
-    {
-      success: result.success,
-      message: result.message,
-      data: result.data || null,
-    },
-    {
-      status: result.status,
-    }
-  );
+    // 2. createAdmission ko req nahi, body bhejein
+    const result = await createAdmission(body);
+
+    return NextResponse.json(
+      {
+        success: result.success,
+        message: result.message,
+        data: result.data || null,
+      },
+      {
+        status: result.status || 200,
+      }
+    );
+  } catch (error) {
+    console.error("Route Error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+        data: null,
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
-
 // ============================================
 // PUT - Update admission by Student ID (using query param)
 // ============================================
